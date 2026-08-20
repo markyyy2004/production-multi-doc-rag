@@ -12,6 +12,7 @@ PyMuPDF
 python-docx
 python-pptx
 rapidocr-onnxruntime
+opencv-python-headless
 Pillow
 numpy
 pytest
