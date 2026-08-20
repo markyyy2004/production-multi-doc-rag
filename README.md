@@ -1,5 +1,8 @@
-```markdown
 # ⚡ Production Multi-Doc RAG — Enterprise Knowledge Engine
+
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://appuction-multi-doc-rag-2xcrazxoyrpmr7mwnxdvm.streamlit.app/)
+[![CI Pipeline](https://github.com/markyyy2004/production-multi-doc-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/markyyy2004/production-multi-doc-rag/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A production-grade, full-stack **Retrieval-Augmented Generation (RAG)** copilot designed for precise technical document search, OCR ingestion, and conversational question answering.
 
@@ -14,7 +17,7 @@ Powered by a **Hybrid Search Pipeline (FAISS Dense Vectors + BM25 Lexical Matchi
 * **RapidOCR Vision Fallback:** Automatically extracts text from scanned pages, diagrams, and low-resolution images with a $\ge 0.50$ confidence threshold filter.
 * **Full-Stack Security & Persistence:** SQLite relational storage (`database.py`) with SHA-256 password hashing for multi-user authentication and per-user conversation history.
 * **Zero-Hallucination Guardrails:** Input clipping (1,500-char max) to prevent token overflow and deterministic static fallbacks when no relevant context is indexed.
-* **Split-Screen Document Inspector:** Interactive UI allowing users to click and inspect source documents, page numbers, and exact text chunks alongside live chat.
+* **Split-Screen Document Inspector:** Interactive UI allowing users to inspect source documents, page numbers, and exact text chunks alongside live chat.
 
 ---
 
@@ -90,6 +93,7 @@ production-multi-doc-rag/
 ├── database.py                  # SQLite schema, user auth, and message history
 ├── profile_pipeline.py          # Latency & throughput benchmarking script
 ├── conftest.py                  # Pytest configuration
+├── packages.txt                 # Debian system dependencies for OCR / OpenGL
 ├── requirements.txt             # Locked production dependencies
 ├── .gitignore                   # Ignores venv, database, and local indexes
 ├── LICENSE                      # MIT License
@@ -158,7 +162,7 @@ streamlit run app.py
 
 The project includes 9 automated unit and integration tests covering corrupt file handling, OCR fallbacks, exact keyword retrieval, semantic similarity, and database persistence.
 
-To trigger the test suite manually:
+To trigger the test suite locally:
 
 ```bash
 python -m pytest -v
@@ -185,4 +189,4 @@ Continuous integration is automated via **GitHub Actions** on every push to `mai
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
-```
+
