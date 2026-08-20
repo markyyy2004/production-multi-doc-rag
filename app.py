@@ -178,7 +178,7 @@ class HybridRetriever:
         return [item["doc"] for item in sorted_rrf[:top_k]]
 
 # -----------------------------------------------------------------------------
-# 4. STREAMLIT APP CONFIGURATION & SOLID DARK THEME
+# 4. STREAMLIT APP CONFIGURATION & ORIGINAL UI
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Nexus RAG Engine",
@@ -187,63 +187,50 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Robust, Native Streamlit Dark CSS (no unescaped markdown conflicts)
 st.markdown("""
 <style>
     .stApp {
         background-color: #0b0f17;
-        color: #e2e8f0;
+        color: #c9d1d9;
     }
     
-    /* Native Chat Message Glow & Borders */
     .stChatMessage {
-        background-color: #111827 !important;
-        border: 1px solid #1f2937 !important;
-        border-radius: 10px !important;
+        background-color: #161b22 !important;
+        border: 1px solid #30363d !important;
+        border-radius: 8px !important;
         margin-bottom: 12px !important;
-        padding: 12px !important;
     }
     
-    /* Table Styling */
     table {
         width: 100%;
         border-collapse: collapse;
         margin: 12px 0;
-        border: 1px solid #334155;
+        border: 1px solid #30363d;
     }
     th {
-        background-color: #1e293b !important;
-        color: #38bdf8 !important;
+        background-color: #21262d !important;
+        color: #58a6ff !important;
         padding: 8px 12px;
-        border: 1px solid #334155;
+        border: 1px solid #30363d;
         text-align: left;
     }
     td {
-        background-color: #0f172a !important;
-        color: #cbd5e1 !important;
+        background-color: #0d1117 !important;
+        color: #c9d1d9 !important;
         padding: 8px 12px;
-        border: 1px solid #1e293b;
+        border: 1px solid #30363d;
     }
     
-    /* Sleek Action Buttons */
     .stButton>button {
-        background-color: #161f30;
-        color: #f8fafc;
-        border: 1px solid #334155;
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.2s ease;
+        background-color: #21262d;
+        color: #c9d1d9;
+        border: 1px solid #30363d;
+        border-radius: 6px;
     }
     .stButton>button:hover {
-        background-color: #2563eb;
-        border-color: #38bdf8;
+        background-color: #30363d;
+        border-color: #8b949e;
         color: #ffffff;
-    }
-    
-    div[data-testid="stExpander"] {
-        background-color: #111827;
-        border: 1px solid #1f2937;
-        border-radius: 8px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -380,7 +367,7 @@ with col_p2:
         preset_clicked = "Identify the key components and compare operational structural differences."
 with col_p3:
     if st.button("📋 Generate Practice Quiz"):
-        preset_clicked = "Generate a comprehensive practice quiz with multiple questions and answers based on the notes."
+        preset_clicked = "Generate a comprehensive practice quiz with questions and answers based on the notes."
 
 user_query = st.chat_input("Ask anything about your documents, code, or diagrams...")
 if preset_clicked:
@@ -415,8 +402,7 @@ if user_query:
 Analyze the provided document contexts to construct your structural answers.
 
 CRITICAL INSTRUCTIONS:
-- Use clean Markdown tables (| Topic | Key Points |) and bold headers for structured breakdowns.
-- Never output raw `<br>` HTML tags.
+- Use clean Markdown tables (| Topic | Key Points |) and bullet points for all structured breakdowns.
 - Base your answers strictly on the context if relevant.
 
 CONTEXT:
@@ -431,8 +417,9 @@ CONTEXT:
         st.error("🔑 GROQ_API_KEY is not configured! Add it to Streamlit Secrets or your .env file.")
     else:
         try:
+            # Uses the exact verified Groq production model ID
             llm = ChatGroq(
-                model_name="llama-3.3-70b-versatile",
+                model_name="openai/gpt-oss-20b",
                 groq_api_key=groq_api_key,
                 temperature=0.2,
                 streaming=True
