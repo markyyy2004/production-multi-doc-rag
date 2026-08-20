@@ -178,214 +178,86 @@ class HybridRetriever:
         return [item["doc"] for item in sorted_rrf[:top_k]]
 
 # -----------------------------------------------------------------------------
-# 4. STREAMLIT ULTRA-AESTHETIC DARK UI & CYBER GLASSMORPHISM
+# 4. STREAMLIT APP CONFIGURATION & DARK THEME
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="NEXUS // Hybrid RAG Copilot",
-    page_icon="🦇",
+    page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Deep aesthetic CSS injection: Neon accents, frosted glass, smooth borders, and glow states
-st.markdown("""
+# Safe CSS injection without Markdown parser conflicts
+CUSTOM_CSS = """
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap');
-
-    /* Global Root Styling */
-    html, body, [class*="css"] {
-        font-family: 'Plus Jakarta Sans', sans-serif;
-    }
-    
     .stApp {
-        background: radial-gradient(circle at 10% 20%, #0d111a 0%, #07090e 100%);
+        background-color: #0b0f17;
         color: #e2e8f0;
     }
-
-    /* Ambient Header Glow */
-    .hero-container {
-        padding: 24px 28px;
-        background: linear-gradient(135deg, rgba(15, 23, 42, 0.75), rgba(8, 12, 22, 0.85));
-        border: 1px solid rgba(56, 189, 248, 0.15);
-        border-radius: 16px;
-        backdrop-filter: blur(14px);
-        margin-bottom: 24px;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    .hero-title {
-        font-size: 1.85rem;
-        font-weight: 800;
-        letter-spacing: -0.5px;
-        background: linear-gradient(90deg, #f8fafc 0%, #38bdf8 50%, #818cf8 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .hero-badge {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.72rem;
-        font-weight: 600;
-        padding: 4px 10px;
-        border-radius: 20px;
-        background: rgba(56, 189, 248, 0.1);
-        border: 1px solid rgba(56, 189, 248, 0.3);
-        color: #38bdf8;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-    }
-
-    /* Sidebar Aesthetics */
-    [data-testid="stSidebar"] {
-        background-color: #080c14 !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
+    
+    .hero-box {
+        padding: 20px 24px;
+        background: #111827;
+        border: 1px solid #1e293b;
+        border-left: 4px solid #38bdf8;
+        border-radius: 12px;
+        margin-bottom: 20px;
     }
     
-    .sidebar-user-card {
-        background: rgba(15, 23, 42, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 12px;
-        padding: 12px 14px;
-        margin-bottom: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    /* Modern Dark Chat Bubbles */
-    .user-bubble {
-        background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9));
-        border: 1px solid rgba(148, 163, 184, 0.12);
+    .chat-user-box {
+        background: #1e293b;
+        border: 1px solid #334155;
         border-left: 3px solid #818cf8;
-        border-radius: 14px;
-        padding: 16px 20px;
-        margin-bottom: 18px;
-        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-bottom: 14px;
     }
-
-    .assistant-bubble {
-        background: linear-gradient(135deg, rgba(13, 18, 30, 0.95), rgba(7, 10, 18, 0.9));
-        border: 1px solid rgba(56, 189, 248, 0.2);
+    
+    .chat-ai-box {
+        background: #0f172a;
+        border: 1px solid #1e293b;
         border-left: 3px solid #38bdf8;
-        border-radius: 14px;
-        padding: 20px 24px;
-        margin-bottom: 24px;
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
-        backdrop-filter: blur(10px);
+        border-radius: 10px;
+        padding: 18px 22px;
+        margin-bottom: 18px;
     }
 
-    .bubble-meta {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.75rem;
-        font-weight: 700;
-        margin-bottom: 8px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    /* Structured Markdown Tables */
     table {
         width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        margin: 16px 0;
-        border-radius: 10px;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: #080c14;
+        border-collapse: collapse;
+        margin: 14px 0;
+        border: 1px solid #334155;
     }
     th {
-        background: linear-gradient(90deg, #131b2e 0%, #17223b 100%) !important;
-        color: #38bdf8 !important;
-        font-weight: 700 !important;
-        font-size: 0.88rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        padding: 12px 16px;
-        border-bottom: 1px solid rgba(56, 189, 248, 0.2) !important;
+        background-color: #1e293b;
+        color: #38bdf8;
+        padding: 10px 14px;
+        border: 1px solid #334155;
+        font-weight: 700;
+        text-align: left;
     }
     td {
-        background-color: transparent !important;
-        color: #cbd5e1 !important;
-        font-size: 0.92rem;
-        padding: 12px 16px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-        line-height: 1.6;
+        background-color: #0f172a;
+        color: #cbd5e1;
+        padding: 10px 14px;
+        border: 1px solid #1e293b;
     }
-    tr:last-child td {
-        border-bottom: none;
-    }
-    tr:hover td {
-        background-color: rgba(56, 189, 248, 0.03) !important;
-    }
-
-    /* Code Tags */
-    code {
-        font-family: 'JetBrains Mono', monospace !important;
-        background: rgba(56, 189, 248, 0.08) !important;
-        color: #38bdf8 !important;
-        border: 1px solid rgba(56, 189, 248, 0.2) !important;
-        padding: 2px 7px !important;
-        border-radius: 5px !important;
-        font-size: 0.85em !important;
-    }
-
-    /* Custom Streamlit Form Elements & Inputs */
+    
     .stButton>button {
-        background: linear-gradient(135deg, #131b2e, #0e1626);
-        color: #f1f5f9;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: #1e293b;
+        color: #f8fafc;
+        border: 1px solid #334155;
         border-radius: 8px;
         font-weight: 600;
-        font-size: 0.88rem;
-        padding: 8px 16px;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .stButton>button:hover {
+        background-color: #0284c7;
+        color: #ffffff;
         border-color: #38bdf8;
-        color: #38bdf8;
-        box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
-        transform: translateY(-1px);
-    }
-    .stButton>button:active {
-        transform: translateY(0);
-    }
-
-    /* Expander Styling */
-    div[data-testid="stExpander"] {
-        background: rgba(13, 18, 30, 0.6) !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        border-radius: 10px !important;
-        backdrop-filter: blur(8px);
-    }
-
-    /* Custom Scrollbars */
-    ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-        background: #080c14;
-    }
-    ::-webkit-scrollbar-thumb {
-        background: #1e293b;
-        border-radius: 3px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-        background: #334155;
     }
 </style>
-""", unsafe_allowed_html=True)
+"""
+st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -397,13 +269,13 @@ if "retriever" not in st.session_state:
 # --- AUTHENTICATION DIALOG ---
 if not st.session_state.authenticated:
     st.markdown("""
-    <div style="text-align: center; margin-top: 40px; margin-bottom: 25px;">
-        <h1 style="font-size: 2.4rem; font-weight: 800; background: linear-gradient(90deg, #f8fafc, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">⚡ NEXUS INTELLIGENCE</h1>
-        <p style="color: #64748b; font-size: 0.95rem; font-family: 'JetBrains Mono', monospace;">ENTERPRISE MULTI-DOC HYBRID RAG CORE</p>
+    <div style="text-align: center; margin-top: 30px; margin-bottom: 20px;">
+        <h1 style="color: #38bdf8; font-weight: 800;">⚡ NEXUS INTELLIGENCE</h1>
+        <p style="color: #64748b;">Enterprise Multi-Document Hybrid RAG Core</p>
     </div>
-    """, unsafe_allowed_html=True)
+    """, unsafe_allow_html=True)
     
-    _, col_center, _ = st.columns([1, 1.4, 1])
+    col_l, col_center, col_r = st.columns([1, 1.4, 1])
     with col_center:
         tab_login, tab_register = st.tabs(["🔒 Secure Login", "📝 Create Account"])
         
@@ -426,14 +298,14 @@ if not st.session_state.authenticated:
             reg_pass = st.text_input("New Password", type="password", key="reg_pass")
             if st.button("REGISTER IDENTITY"):
                 if len(reg_user.strip()) < 3 or len(reg_pass) < 4:
-                    st.warning("Username must be $\ge 3$ characters, Password $\ge 4$ characters.")
+                    st.warning("Username must be at least 3 chars, Password at least 4 chars.")
                 else:
                     h = hashlib.sha256(reg_pass.encode()).hexdigest()
                     try:
                         with get_db_connection() as conn:
                             conn.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (reg_user, h))
                             conn.commit()
-                        st.success("Account created successfully! Switch to Login to proceed.")
+                        st.success("Account created! Switch to Login tab to proceed.")
                     except sqlite3.IntegrityError:
                         st.error("Username is already taken.")
     st.stop()
@@ -442,16 +314,7 @@ if not st.session_state.authenticated:
 db_conn = get_db_connection()
 
 with st.sidebar:
-    st.markdown(f"""
-    <div class="sidebar-user-card">
-        <div>
-            <div style="font-size: 0.7rem; color: #64748b; font-family: 'JetBrains Mono', monospace;">ACTIVE USER</div>
-            <div style="font-weight: 700; color: #f8fafc;">{st.session_state.username}</div>
-        </div>
-        <span style="font-size: 1.1rem;">🦇</span>
-    </div>
-    """, unsafe_allow_html=True)
-    
+    st.markdown(f"👤 **Logged in as:** `{st.session_state.username}`")
     if st.button("🚪 Log Out"):
         st.session_state.authenticated = False
         st.session_state.username = None
@@ -459,41 +322,23 @@ with st.sidebar:
         st.rerun()
         
     st.divider()
-    st.markdown("<div style='font-family: \"JetBrains Mono\", monospace; font-size: 0.75rem; color: #64748b; letter-spacing: 0.5px;'>SYSTEM ARCHITECTURE</div>", unsafe_allow_html=True)
-    
+    st.subheader("⚡ NEXUS ENGINE")
     if st.session_state.retriever:
-        st.markdown("""
-        <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; padding: 8px 12px; margin-top: 6px;">
-            <div style="color: #4ade80; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                <span style="height: 6px; width: 6px; background-color: #4ade80; border-radius: 50%; display: inline-block;"></span>
-                HYBRID INDEX ONLINE
-            </div>
-            <div style="font-size: 0.7rem; color: #86efac; margin-top: 2px;">Dense FAISS + Sparse BM25 (RRF)</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.success("🟢 Hybrid Index Active (BM25 + FAISS)")
     else:
-        st.markdown("""
-        <div style="background: rgba(148, 163, 184, 0.08); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 8px 12px; margin-top: 6px;">
-            <div style="color: #94a3b8; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                <span style="height: 6px; width: 6px; background-color: #94a3b8; border-radius: 50%; display: inline-block;"></span>
-                INDEX STANDBY
-            </div>
-            <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">Awaiting file ingestion...</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.info("⚪ No Documents Indexed")
         
     st.divider()
-    st.markdown("<div style='font-family: \"JetBrains Mono\", monospace; font-size: 0.75rem; color: #64748b; letter-spacing: 0.5px;'>DOCUMENT INGESTION</div>", unsafe_allow_html=True)
+    st.subheader("📂 Document Hub")
     uploaded_files = st.file_uploader(
         "Upload Documents",
         accept_multiple_files=True,
-        type=["pdf", "docx", "pptx", "txt", "py", "md"],
-        label_visibility="collapsed"
+        type=["pdf", "docx", "pptx", "txt", "py", "md"]
     )
     
     if st.button("⚡ Process & Ingest Files") and uploaded_files:
         parsed_intelligence = []
-        with st.spinner("Deconstructing & Embedding Intelligence..."):
+        with st.spinner("Deconstructing & Indexing Intelligence..."):
             for f in uploaded_files:
                 file_bytes = f.read()
                 extracted_pages = extract_text_from_file(f.name, file_bytes)
@@ -509,7 +354,7 @@ with st.sidebar:
             st.error("No extractable textual content found.")
             
     st.divider()
-    st.markdown("<div style='font-family: \"JetBrains Mono\", monospace; font-size: 0.75rem; color: #64748b; letter-spacing: 0.5px;'>OPERATIONS</div>", unsafe_allow_html=True)
+    st.subheader("⚙️ Operations")
     col_cc, col_wdb = st.columns(2)
     with col_cc:
         if st.button("🧹 Clear Chat"):
@@ -526,12 +371,9 @@ with st.sidebar:
 
 # --- MAIN HERO HEADER ---
 st.markdown("""
-<div class="hero-container">
-    <div>
-        <h1 class="hero-title">⚡ Nexus Hybrid RAG</h1>
-        <p style="color: #94a3b8; font-size: 0.88rem; margin: 4px 0 0 0;">Next-Gen Enterprise Multi-Document Context Ingestion & Neural Search</p>
-    </div>
-    <div class="hero-badge">Groq LLaMA 3.3 Engine</div>
+<div class="hero-box">
+    <h2 style="margin: 0; color: #f8fafc;">⚡ Nexus Hybrid RAG Copilot</h2>
+    <p style="margin: 6px 0 0 0; color: #94a3b8; font-size: 0.9rem;">Multi-Document Neural Search & Exact Lexical Retrieval</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -541,29 +383,25 @@ chat_history_rows = db_conn.execute(
     (st.session_state.username,)
 ).fetchall()
 
-# Display Chat History with Aesthetic Bubbles
+# Display Chat History with styled cards
 for msg in chat_history_rows:
     if msg["role"] == "user":
         st.markdown(f"""
-        <div class="user-bubble">
-            <div class="bubble-meta" style="color: #a5b4fc;">
-                <span>👤</span> USER QUERY
-            </div>
-            <div style="color: #f1f5f9; font-size: 0.95rem; line-height: 1.5;">{msg['message']}</div>
+        <div class="chat-user-box">
+            <div style="font-weight: 700; color: #a5b4fc; font-size: 0.8rem; margin-bottom: 4px;">👤 USER QUERY</div>
+            <div style="color: #f1f5f9;">{msg['message']}</div>
         </div>
         """, unsafe_allow_html=True)
     else:
         st.markdown(f"""
-        <div class="assistant-bubble">
-            <div class="bubble-meta" style="color: #38bdf8;">
-                <span>⚡</span> NEXUS INTELLIGENCE SYNTHESIS
-            </div>
-            <div style="color: #e2e8f0; font-size: 0.94rem;">{msg['message']}</div>
+        <div class="chat-ai-box">
+            <div style="font-weight: 700; color: #38bdf8; font-size: 0.8rem; margin-bottom: 8px;">⚡ NEXUS OUTPUT</div>
+            <div style="color: #e2e8f0;">{msg['message']}</div>
         </div>
         """, unsafe_allow_html=True)
 
 # Quick Action Pill Buttons
-st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
 col_p1, col_p2, col_p3 = st.columns(3)
 preset_clicked = None
 with col_p1:
