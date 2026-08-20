@@ -178,86 +178,75 @@ class HybridRetriever:
         return [item["doc"] for item in sorted_rrf[:top_k]]
 
 # -----------------------------------------------------------------------------
-# 4. STREAMLIT APP CONFIGURATION & DARK THEME
+# 4. STREAMLIT APP CONFIGURATION & SOLID DARK THEME
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="NEXUS // Hybrid RAG Copilot",
+    page_title="Nexus RAG Engine",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Safe CSS injection without Markdown parser conflicts
-CUSTOM_CSS = """
+# Robust, Native Streamlit Dark CSS (no unescaped markdown conflicts)
+st.markdown("""
 <style>
     .stApp {
         background-color: #0b0f17;
         color: #e2e8f0;
     }
     
-    .hero-box {
-        padding: 20px 24px;
-        background: #111827;
-        border: 1px solid #1e293b;
-        border-left: 4px solid #38bdf8;
-        border-radius: 12px;
-        margin-bottom: 20px;
+    /* Native Chat Message Glow & Borders */
+    .stChatMessage {
+        background-color: #111827 !important;
+        border: 1px solid #1f2937 !important;
+        border-radius: 10px !important;
+        margin-bottom: 12px !important;
+        padding: 12px !important;
     }
     
-    .chat-user-box {
-        background: #1e293b;
-        border: 1px solid #334155;
-        border-left: 3px solid #818cf8;
-        border-radius: 10px;
-        padding: 14px 18px;
-        margin-bottom: 14px;
-    }
-    
-    .chat-ai-box {
-        background: #0f172a;
-        border: 1px solid #1e293b;
-        border-left: 3px solid #38bdf8;
-        border-radius: 10px;
-        padding: 18px 22px;
-        margin-bottom: 18px;
-    }
-
+    /* Table Styling */
     table {
         width: 100%;
         border-collapse: collapse;
-        margin: 14px 0;
+        margin: 12px 0;
         border: 1px solid #334155;
     }
     th {
-        background-color: #1e293b;
-        color: #38bdf8;
-        padding: 10px 14px;
+        background-color: #1e293b !important;
+        color: #38bdf8 !important;
+        padding: 8px 12px;
         border: 1px solid #334155;
-        font-weight: 700;
         text-align: left;
     }
     td {
-        background-color: #0f172a;
-        color: #cbd5e1;
-        padding: 10px 14px;
+        background-color: #0f172a !important;
+        color: #cbd5e1 !important;
+        padding: 8px 12px;
         border: 1px solid #1e293b;
     }
     
+    /* Sleek Action Buttons */
     .stButton>button {
-        background-color: #1e293b;
+        background-color: #161f30;
         color: #f8fafc;
         border: 1px solid #334155;
         border-radius: 8px;
-        font-weight: 600;
+        font-weight: 500;
+        transition: all 0.2s ease;
     }
     .stButton>button:hover {
-        background-color: #0284c7;
-        color: #ffffff;
+        background-color: #2563eb;
         border-color: #38bdf8;
+        color: #ffffff;
+    }
+    
+    div[data-testid="stExpander"] {
+        background-color: #111827;
+        border: 1px solid #1f2937;
+        border-radius: 8px;
     }
 </style>
-"""
-st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -268,12 +257,8 @@ if "retriever" not in st.session_state:
 
 # --- AUTHENTICATION DIALOG ---
 if not st.session_state.authenticated:
-    st.markdown("""
-    <div style="text-align: center; margin-top: 30px; margin-bottom: 20px;">
-        <h1 style="color: #38bdf8; font-weight: 800;">⚡ NEXUS INTELLIGENCE</h1>
-        <p style="color: #64748b;">Enterprise Multi-Document Hybrid RAG Core</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.title("⚡ Nexus RAG Engine")
+    st.caption("Secure Multi-Document Hybrid RAG Copilot")
     
     col_l, col_center, col_r = st.columns([1, 1.4, 1])
     with col_center:
@@ -282,7 +267,7 @@ if not st.session_state.authenticated:
         with tab_login:
             li_user = st.text_input("Username", key="li_user")
             li_pass = st.text_input("Password", type="password", key="li_pass")
-            if st.button("AUTHENTICATE SESSION"):
+            if st.button("Authenticate Session"):
                 h = hashlib.sha256(li_pass.encode()).hexdigest()
                 with get_db_connection() as conn:
                     user_row = conn.execute("SELECT * FROM users WHERE username = ? AND password_hash = ?", (li_user, h)).fetchone()
@@ -296,16 +281,16 @@ if not st.session_state.authenticated:
         with tab_register:
             reg_user = st.text_input("New Username", key="reg_user")
             reg_pass = st.text_input("New Password", type="password", key="reg_pass")
-            if st.button("REGISTER IDENTITY"):
+            if st.button("Register Identity"):
                 if len(reg_user.strip()) < 3 or len(reg_pass) < 4:
-                    st.warning("Username must be at least 3 chars, Password at least 4 chars.")
+                    st.warning("Username must be >= 3 characters, Password >= 4 characters.")
                 else:
                     h = hashlib.sha256(reg_pass.encode()).hexdigest()
                     try:
                         with get_db_connection() as conn:
                             conn.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (reg_user, h))
                             conn.commit()
-                        st.success("Account created! Switch to Login tab to proceed.")
+                        st.success("Account created! Switch to Login tab to enter.")
                     except sqlite3.IntegrityError:
                         st.error("Username is already taken.")
     st.stop()
@@ -322,23 +307,24 @@ with st.sidebar:
         st.rerun()
         
     st.divider()
-    st.subheader("⚡ NEXUS ENGINE")
+    st.markdown("### ⚡ NEXUS ENGINE")
+    st.caption("Hybrid BM25 + FAISS Vector Engine")
     if st.session_state.retriever:
         st.success("🟢 Hybrid Index Active (BM25 + FAISS)")
     else:
         st.info("⚪ No Documents Indexed")
         
     st.divider()
-    st.subheader("📂 Document Hub")
+    st.markdown("### 📂 Document Hub")
     uploaded_files = st.file_uploader(
         "Upload Documents",
         accept_multiple_files=True,
         type=["pdf", "docx", "pptx", "txt", "py", "md"]
     )
     
-    if st.button("⚡ Process & Ingest Files") and uploaded_files:
+    if st.button("⚡ Process & Index Documents") and uploaded_files:
         parsed_intelligence = []
-        with st.spinner("Deconstructing & Indexing Intelligence..."):
+        with st.spinner("Executing Parallel Document Deconstruction..."):
             for f in uploaded_files:
                 file_bytes = f.read()
                 extracted_pages = extract_text_from_file(f.name, file_bytes)
@@ -354,7 +340,7 @@ with st.sidebar:
             st.error("No extractable textual content found.")
             
     st.divider()
-    st.subheader("⚙️ Operations")
+    st.markdown("### ⚙️ Operations")
     col_cc, col_wdb = st.columns(2)
     with col_cc:
         if st.button("🧹 Clear Chat"):
@@ -370,49 +356,31 @@ with st.sidebar:
             st.rerun()
 
 # --- MAIN HERO HEADER ---
-st.markdown("""
-<div class="hero-box">
-    <h2 style="margin: 0; color: #f8fafc;">⚡ Nexus Hybrid RAG Copilot</h2>
-    <p style="margin: 6px 0 0 0; color: #94a3b8; font-size: 0.9rem;">Multi-Document Neural Search & Exact Lexical Retrieval</p>
-</div>
-""", unsafe_allow_html=True)
+st.markdown("## ⚡ Nexus Enterprise Multi-Doc Hybrid RAG")
 
-# Fetch History
+# Fetch Chat History
 chat_history_rows = db_conn.execute(
     "SELECT role, message FROM chat_history WHERE username = ? ORDER BY timestamp ASC",
     (st.session_state.username,)
 ).fetchall()
 
-# Display Chat History with styled cards
 for msg in chat_history_rows:
-    if msg["role"] == "user":
-        st.markdown(f"""
-        <div class="chat-user-box">
-            <div style="font-weight: 700; color: #a5b4fc; font-size: 0.8rem; margin-bottom: 4px;">👤 USER QUERY</div>
-            <div style="color: #f1f5f9;">{msg['message']}</div>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-        <div class="chat-ai-box">
-            <div style="font-weight: 700; color: #38bdf8; font-size: 0.8rem; margin-bottom: 8px;">⚡ NEXUS OUTPUT</div>
-            <div style="color: #e2e8f0;">{msg['message']}</div>
-        </div>
-        """, unsafe_allow_html=True)
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["message"])
 
-# Quick Action Pill Buttons
-st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+# Quick Suggested Prompts
+st.divider()
 col_p1, col_p2, col_p3 = st.columns(3)
 preset_clicked = None
 with col_p1:
     if st.button("💡 Summarize Core Concepts"):
-        preset_clicked = "Summarize the core concepts and fundamental architecture covered across the documents in a clean Markdown table."
+        preset_clicked = "Summarize core concepts and fundamental architecture covered across the notes."
 with col_p2:
     if st.button("⚔️ Compare Key Differences"):
-        preset_clicked = "Identify the key components and compare operational structural differences in a clear table."
+        preset_clicked = "Identify the key components and compare operational structural differences."
 with col_p3:
     if st.button("📋 Generate Practice Quiz"):
-        preset_clicked = "Generate a comprehensive technical practice evaluation quiz with questions and answer explanations."
+        preset_clicked = "Generate a comprehensive practice quiz with multiple questions and answers based on the notes."
 
 user_query = st.chat_input("Ask anything about your documents, code, or diagrams...")
 if preset_clicked:
@@ -422,6 +390,9 @@ if preset_clicked:
 # 5. RETRIEVAL & INFERENCE PIPELINE
 # -----------------------------------------------------------------------------
 if user_query:
+    with st.chat_message("user"):
+        st.markdown(user_query)
+        
     db_conn.execute(
         "INSERT INTO chat_history (username, role, message) VALUES (?, ?, ?)",
         (st.session_state.username, "user", user_query)
@@ -435,18 +406,18 @@ if user_query:
         extracted_chunks = st.session_state.retriever.search(user_query, top_k=4)
         for idx, doc in enumerate(extracted_chunks):
             context_str += f"\n[Context Chunk {idx+1}]: {doc.page_content}\n"
-            source_citations.append(f"📄 File: `{doc.metadata.get('source')}` | Reference Page: **{doc.metadata.get('page')}**")
+            source_citations.append(f"📄 File: `{doc.metadata.get('source')}` | Page: **{doc.metadata.get('page')}**")
             
     if not context_str:
-        context_str = "No specific reference documents indexed. Rely on foundational knowledge."
+        context_str = "No specific reference documents indexed. Rely on general foundational knowledge."
 
-    system_prompt = f"""You are an elite, highly intelligent technical RAG copilot.
-Use the retrieved document context below to answer the user request accurately and thoroughly.
+    system_prompt = f"""You are a precise, elite enterprise technical RAG copilot.
+Analyze the provided document contexts to construct your structural answers.
 
-CRITICAL FORMATTING RULES:
-- Use clean Markdown tables (| Header 1 | Header 2 |) with bold headers for all structured comparisons.
+CRITICAL INSTRUCTIONS:
+- Use clean Markdown tables (| Topic | Key Points |) and bold headers for structured breakdowns.
 - Never output raw `<br>` HTML tags.
-- Deliver rich, well-organized technical explanations.
+- Base your answers strictly on the context if relevant.
 
 CONTEXT:
 {context_str}"""
