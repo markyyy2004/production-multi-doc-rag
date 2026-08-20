@@ -8,7 +8,7 @@ import streamlit as st
 from dotenv import load_dotenv
 
 # -----------------------------------------------------------------------------
-# 1. SECURE API KEY & ENVIRONMENT SYNCHRONIZATION
+# 1. ENVIRONMENT & SECRETS SYNCHRONIZATION
 # -----------------------------------------------------------------------------
 load_dotenv()
 
@@ -71,7 +71,7 @@ def init_db():
 init_db()
 
 # -----------------------------------------------------------------------------
-# 3. EXTRACTION & HYBRID RETRIEVAL ENGINES
+# 3. PARALLEL DOCUMENT EXTRACTION & OCR
 # -----------------------------------------------------------------------------
 ocr_engine = RapidOCR()
 
@@ -128,6 +128,9 @@ def extract_text_from_file(file_name, file_bytes):
             pass
     return chunks
 
+# -----------------------------------------------------------------------------
+# 4. HYBRID RETRIEVAL (FAISS + BM25 via RRF)
+# -----------------------------------------------------------------------------
 @st.cache_resource(show_spinner=False)
 def get_embedding_model():
     return HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
@@ -178,17 +181,11 @@ class HybridRetriever:
         sorted_rrf = sorted(rrf_scores.values(), key=lambda x: x["score"], reverse=True)
         return [item["doc"] for item in sorted_rrf[:top_k]]
 
-def clean_response_markdown(text: str) -> str:
-    """Removes broken raw html tags and formats bullet linebreaks properly."""
-    text = re.sub(r'(?i)<br\s*/?>\s*•?', '\n\n* ', text)
-    text = re.sub(r'<[^>]+>', '', text)
-    return text
-
 # -----------------------------------------------------------------------------
-# 4. STREAMLIT APP CONFIGURATION & UI STYLING
+# 5. ORIGINAL POLISHED UI/UX THEME (IDENTICAL TO SCREENSHOT)
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Nexus RAG Engine",
+    page_title="Nexus Enterprise Multi-Doc Hybrid RAG",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -196,20 +193,42 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+    /* Dark Slate Canvas Base */
     .stApp {
-        background-color: #0d1117;
+        background-color: #06090e;
         color: #c9d1d9;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     
-    .stChatMessage {
-        background-color: #161b22 !important;
-        border: 1px solid #30363d !important;
-        border-radius: 10px !important;
-        margin-bottom: 14px !important;
-        padding: 14px !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    /* Clean Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #0d1117 !important;
+        border-right: 1px solid #21262d;
     }
     
+    /* Original Message Containers */
+    .chat-container-user {
+        background-color: #0d1117;
+        border: 1px solid #21262d;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+    
+    .chat-container-ai {
+        background-color: #0d1117;
+        border: 1px solid #21262d;
+        border-radius: 8px;
+        padding: 16px 20px;
+        margin-bottom: 18px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+    }
+    
+    /* Original Markdown Table Architecture */
     table {
         width: 100%;
         border-collapse: collapse;
@@ -219,7 +238,7 @@ st.markdown("""
         overflow: hidden;
     }
     th {
-        background-color: #21262d !important;
+        background-color: #161b22 !important;
         color: #58a6ff !important;
         padding: 10px 14px;
         border: 1px solid #30363d;
@@ -230,30 +249,44 @@ st.markdown("""
         background-color: #0d1117 !important;
         color: #c9d1d9 !important;
         padding: 10px 14px;
-        border: 1px solid #30363d;
+        border: 1px solid #21262d;
         line-height: 1.6;
+        vertical-align: top;
+    }
+    tr:nth-child(even) td {
+        background-color: #10141d !important;
     }
     
+    /* Cyan Inline Code Highlights */
     code {
-        color: #58a6ff !important;
-        background-color: #21262d !important;
+        color: #79c0ff !important;
+        background-color: #1f242c !important;
+        border: 1px solid #30363d !important;
         padding: 2px 6px !important;
         border-radius: 4px !important;
-        font-weight: 500;
+        font-size: 0.88em !important;
     }
     
+    /* Operations and Action Buttons */
     .stButton>button {
-        background-color: #21262d;
-        color: #f0f6fc;
+        background-color: #161b22;
+        color: #c9d1d9;
         border: 1px solid #30363d;
-        border-radius: 8px;
+        border-radius: 6px;
         font-weight: 500;
-        transition: all 0.2s ease;
+        transition: all 0.15s ease-in-out;
     }
     .stButton>button:hover {
-        background-color: #1f6feb;
-        border-color: #58a6ff;
+        background-color: #21262d;
+        border-color: #8b949e;
         color: #ffffff;
+    }
+    
+    /* Citations Expander */
+    div[data-testid="stExpander"] {
+        background-color: #0d1117 !important;
+        border: 1px solid #21262d !important;
+        border-radius: 6px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -267,7 +300,7 @@ if "retriever" not in st.session_state:
 
 # --- AUTHENTICATION DIALOG ---
 if not st.session_state.authenticated:
-    st.title("⚡ Nexus RAG Engine")
+    st.markdown("<h2 style='color:#f0f6fc; font-weight:700;'>⚡ Nexus Enterprise Multi-Doc Hybrid RAG</h2>", unsafe_allow_html=True)
     st.caption("Secure Multi-Document Hybrid RAG Copilot")
     
     col_l, col_center, col_r = st.columns([1, 1.4, 1])
@@ -293,14 +326,14 @@ if not st.session_state.authenticated:
             reg_pass = st.text_input("New Password", type="password", key="reg_pass")
             if st.button("Register Identity"):
                 if len(reg_user.strip()) < 3 or len(reg_pass) < 4:
-                    st.warning("Username must be >= 3 characters, Password >= 4 characters.")
+                    st.warning("Username >= 3 chars, Password >= 4 chars.")
                 else:
                     h = hashlib.sha256(reg_pass.encode()).hexdigest()
                     try:
                         with get_db_connection() as conn:
                             conn.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (reg_user, h))
                             conn.commit()
-                        st.success("Account created! Switch to Login tab to enter.")
+                        st.success("Account registered! Switch to Login tab to proceed.")
                     except sqlite3.IntegrityError:
                         st.error("Username is already taken.")
     st.stop()
@@ -309,7 +342,7 @@ if not st.session_state.authenticated:
 db_conn = get_db_connection()
 
 with st.sidebar:
-    st.markdown(f"👤 **Logged in as:** `{st.session_state.username}`")
+    st.markdown(f"👤 **Logged in as:** <code style='color:#58a6ff;'>{st.session_state.username}</code>", unsafe_allow_html=True)
     if st.button("🚪 Log Out"):
         st.session_state.authenticated = False
         st.session_state.username = None
@@ -319,6 +352,8 @@ with st.sidebar:
     st.divider()
     st.markdown("### ⚡ NEXUS ENGINE")
     st.caption("Hybrid BM25 + FAISS Vector Engine")
+    
+    st.markdown("#### 📊 Hybrid Index Status")
     if st.session_state.retriever:
         st.success("🟢 Hybrid Index Active (BM25 + FAISS)")
     else:
@@ -329,7 +364,8 @@ with st.sidebar:
     uploaded_files = st.file_uploader(
         "Upload Documents",
         accept_multiple_files=True,
-        type=["pdf", "docx", "pptx", "txt", "py", "md"]
+        type=["pdf", "docx", "pptx", "txt", "py", "md"],
+        label_visibility="collapsed"
     )
     
     if st.button("⚡ Process & Index Documents") and uploaded_files:
@@ -366,43 +402,53 @@ with st.sidebar:
             st.rerun()
 
 # --- MAIN CHAT VIEWPORT ---
-st.markdown("## ⚡ Nexus Enterprise Multi-Doc Hybrid RAG")
-
-# Fetch Chat History
 chat_history_rows = db_conn.execute(
     "SELECT role, message FROM chat_history WHERE username = ? ORDER BY timestamp ASC",
     (st.session_state.username,)
 ).fetchall()
 
+# Display Chat History with the exact original cards
 for msg in chat_history_rows:
-    with st.chat_message(msg["role"]):
-        st.markdown(clean_response_markdown(msg["message"]))
+    if msg["role"] == "user":
+        st.markdown(f"""
+        <div class="chat-container-user">
+            <span style="color:#a855f7; font-size:1.1rem;">👤</span>
+            <span style="color:#f0f6fc; font-size:0.95rem;">{msg['message']}</span>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div class="chat-container-ai">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                <span style="color:#f59e0b; font-size:1.1rem;">⚡</span>
+                <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Core Concepts & Architecture (as presented in the notes)</span>
+            </div>
+            <div>{msg['message']}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-# Quick Suggested Prompts
+# Quick Action Pill Prompts positioned above chat input
 st.divider()
 col_p1, col_p2, col_p3 = st.columns(3)
 preset_clicked = None
 with col_p1:
     if st.button("💡 Summarize Core Concepts"):
-        preset_clicked = "Summarize the core concepts covered across the notes in a clean structured table."
+        preset_clicked = "Summarize core concepts and fundamental architecture covered across the notes."
 with col_p2:
     if st.button("⚔️ Compare Key Differences"):
         preset_clicked = "Identify the key components and compare operational structural differences."
 with col_p3:
     if st.button("📋 Generate Practice Quiz"):
-        preset_clicked = "Generate a comprehensive practice evaluation quiz with questions and answers based on the notes."
+        preset_clicked = "Generate a comprehensive practice quiz with multiple questions and answers based on the notes."
 
 user_query = st.chat_input("Ask anything about your documents, code, or diagrams...")
 if preset_clicked:
     user_query = preset_clicked
 
 # -----------------------------------------------------------------------------
-# 5. RETRIEVAL & INFERENCE PIPELINE
+# 6. RETRIEVAL & STREAMING INFERENCE PIPELINE
 # -----------------------------------------------------------------------------
 if user_query:
-    with st.chat_message("user"):
-        st.markdown(user_query)
-        
     db_conn.execute(
         "INSERT INTO chat_history (username, role, message) VALUES (?, ?, ?)",
         (st.session_state.username, "user", user_query)
@@ -421,15 +467,16 @@ if user_query:
     if not context_str:
         context_str = "No specific reference documents indexed. Rely on general foundational knowledge."
 
-    # Using {context} and {question} as explicit prompt variables to prevent f-string parser collisions with code braces {}
+    # Using dynamic {context} input variable to eliminate template f-string errors on code braces
     prompt = ChatPromptTemplate.from_messages([
         (
             "system",
             "You are a precise, elite enterprise technical RAG copilot.\n"
             "Analyze the provided document contexts to construct your structural answers.\n\n"
-            "CRITICAL INSTRUCTIONS:\n"
-            "- Format all structured breakdowns into clean Markdown tables or bullet lists.\n"
-            "- NEVER output raw <br> HTML tags.\n"
+            "CRITICAL FORMATTING INSTRUCTIONS:\n"
+            "- Always structure concepts into Markdown tables (| Topic | Key Points |) or bullet lists.\n"
+            "- Format technical tokens, variables, operators, and code using Markdown code formatting (e.g. `int`, `return`, `cout`).\n"
+            "- Never output raw <br> tags.\n"
             "- Base your answers strictly on the context if relevant.\n\n"
             "CONTEXT:\n{context}"
         ),
@@ -449,12 +496,29 @@ if user_query:
             
             pipeline = prompt | llm | StrOutputParser()
             
-            with st.chat_message("assistant"):
-                def stream_gen():
-                    for chunk in pipeline.stream({"context": context_str, "question": user_query}):
-                        yield clean_response_markdown(chunk)
-                        
-                full_response = st.write_stream(stream_gen)
+            # Streaming UI block
+            with st.container():
+                st.markdown(f"""
+                <div class="chat-container-user">
+                    <span style="color:#a855f7; font-size:1.1rem;">👤</span>
+                    <span style="color:#f0f6fc; font-size:0.95rem;">{user_query}</span>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                response_placeholder = st.empty()
+                full_response = ""
+                
+                for chunk in pipeline.stream({"context": context_str, "question": user_query}):
+                    full_response += chunk
+                    response_placeholder.markdown(f"""
+                    <div class="chat-container-ai">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                            <span style="color:#f59e0b; font-size:1.1rem;">⚡</span>
+                            <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Core Concepts & Architecture (as presented in the notes)</span>
+                        </div>
+                        <div>{full_response}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
                 
                 if source_citations:
                     with st.expander("🔎 Verified Document Citations", expanded=False):
