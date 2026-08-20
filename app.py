@@ -179,7 +179,7 @@ class HybridRetriever:
         return [item["doc"] for item in sorted_rrf[:top_k]]
 
 # -----------------------------------------------------------------------------
-# 4. STREAMLIT APP CONFIGURATION & TARGETED THEME STYLING
+# 4. STREAMLIT APP CONFIGURATION & STYLING
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Nexus Knowledge Copilot",
@@ -190,7 +190,6 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    /* Dark Theme Canvas */
     .stApp {
         background-color: #06090e;
         color: #c9d1d9;
@@ -202,17 +201,7 @@ st.markdown("""
         border-right: 1px solid #1a2233;
     }
 
-    /* Auth Card Styling */
-    .auth-card {
-        background-color: #0b111e;
-        border: 1px solid #1c2638;
-        border-radius: 12px;
-        padding: 28px 32px;
-        margin: 20px auto 0 auto;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    }
-
-    /* Hero Welcome Screen */
+    /* Centered Hero Welcome Box */
     .welcome-pill {
         display: inline-block;
         background: rgba(56, 189, 248, 0.08);
@@ -249,7 +238,7 @@ st.markdown("""
         border-radius: 12px;
         padding: 24px;
         max-width: 680px;
-        margin: 0 auto 28px auto;
+        margin: 0 auto 24px auto;
         text-align: left;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     }
@@ -275,7 +264,7 @@ st.markdown("""
         line-height: 1.4;
     }
 
-    /* Message Containers */
+    /* Message Boxes */
     .chat-container-user {
         background-color: #0b111e;
         border: 1px solid #1c2638;
@@ -296,7 +285,7 @@ st.markdown("""
         line-height: 1.6;
     }
     
-    /* Markdown Tables */
+    /* Clean Markdown Tables */
     table {
         width: 100%;
         border-collapse: collapse;
@@ -346,7 +335,7 @@ st.markdown("""
         border-color: #38bdf8;
         color: #ffffff;
     }
-    
+
     .status-badge-active {
         background: rgba(34, 197, 94, 0.1);
         border: 1px solid rgba(34, 197, 94, 0.3);
@@ -381,50 +370,49 @@ if "username" not in st.session_state:
 if "retriever" not in st.session_state:
     st.session_state.retriever = None
 
-# --- AUTHENTICATION DIALOG (CENTERED MODAL) ---
+# --- AUTHENTICATION MODAL (CLEAN EMBEDDED FORM) ---
 if not st.session_state.authenticated:
     st.markdown("""
-    <div style="text-align: center; margin-top: 50px; margin-bottom: 20px;">
-        <h1 style="color: #ffffff; font-size: 2.3rem; font-weight: 800;">⚡ Nexus Knowledge Copilot</h1>
+    <div style="text-align: center; margin-top: 55px; margin-bottom: 25px;">
+        <h1 style="color: #ffffff; font-size: 2.3rem; font-weight: 800; letter-spacing: -0.5px;">⚡ Nexus Knowledge Copilot</h1>
         <p style="color: #8b949e; font-size: 0.95rem;">Context-aware, multi-format conversational intelligence</p>
     </div>
     """, unsafe_allow_html=True)
     
     col_l, col_center, col_r = st.columns([1, 1.2, 1])
     with col_center:
-        st.markdown('<div class="auth-card">', unsafe_allow_html=True)
-        tab_login, tab_register = st.tabs(["🔒 Secure Login", "📝 Create Account"])
-        
-        with tab_login:
-            li_user = st.text_input("Username", key="li_user")
-            li_pass = st.text_input("Password", type="password", key="li_pass")
-            if st.button("Authenticate Session"):
-                h = hashlib.sha256(li_pass.encode()).hexdigest()
-                with get_db_connection() as conn:
-                    user_row = conn.execute("SELECT * FROM users WHERE username = ? AND password_hash = ?", (li_user, h)).fetchone()
-                if user_row:
-                    st.session_state.authenticated = True
-                    st.session_state.username = li_user
-                    st.rerun()
-                else:
-                    st.error("Invalid credentials provided.")
-                    
-        with tab_register:
-            reg_user = st.text_input("New Username", key="reg_user")
-            reg_pass = st.text_input("New Password", type="password", key="reg_pass")
-            if st.button("Register Identity"):
-                if len(reg_user.strip()) < 3 or len(reg_pass) < 4:
-                    st.warning("Username must be >= 3 characters, Password >= 4 characters.")
-                else:
-                    h = hashlib.sha256(reg_pass.encode()).hexdigest()
-                    try:
-                        with get_db_connection() as conn:
-                            conn.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (reg_user, h))
-                            conn.commit()
-                        st.success("Account registered! Switch to Login tab to proceed.")
-                    except sqlite3.IntegrityError:
-                        st.error("Username is already taken.")
-        st.markdown('</div>', unsafe_allow_html=True)
+        with st.container(border=True):
+            tab_login, tab_register = st.tabs(["🔒 Secure Login", "📝 Create Account"])
+            
+            with tab_login:
+                li_user = st.text_input("Username", key="li_user")
+                li_pass = st.text_input("Password", type="password", key="li_pass")
+                if st.button("Authenticate Session", use_container_width=True):
+                    h = hashlib.sha256(li_pass.encode()).hexdigest()
+                    with get_db_connection() as conn:
+                        user_row = conn.execute("SELECT * FROM users WHERE username = ? AND password_hash = ?", (li_user, h)).fetchone()
+                    if user_row:
+                        st.session_state.authenticated = True
+                        st.session_state.username = li_user
+                        st.rerun()
+                    else:
+                        st.error("Invalid credentials provided.")
+                        
+            with tab_register:
+                reg_user = st.text_input("New Username", key="reg_user")
+                reg_pass = st.text_input("New Password", type="password", key="reg_pass")
+                if st.button("Register Identity", use_container_width=True):
+                    if len(reg_user.strip()) < 3 or len(reg_pass) < 4:
+                        st.warning("Username >= 3 chars, Password >= 4 chars.")
+                    else:
+                        h = hashlib.sha256(reg_pass.encode()).hexdigest()
+                        try:
+                            with get_db_connection() as conn:
+                                conn.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (reg_user, h))
+                                conn.commit()
+                            st.success("Account registered! Switch to Login tab to proceed.")
+                        except sqlite3.IntegrityError:
+                            st.error("Username is already taken.")
     st.stop()
 
 # --- ACTIVE LOGGED-IN SESSION ---
@@ -526,7 +514,6 @@ if not chat_history_rows:
     </div>
     """, unsafe_allow_html=True)
     
-    # Prompt Pill Buttons
     col_p1, col_p2, col_p3 = st.columns(3)
     with col_p1:
         if st.button("💡 Summarize Core Concepts"):
