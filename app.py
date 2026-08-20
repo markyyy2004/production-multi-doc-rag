@@ -185,7 +185,7 @@ def clean_response_markdown(text: str) -> str:
     return text
 
 # -----------------------------------------------------------------------------
-# 4. STREAMLIT APP CONFIGURATION & AESTHETIC DARK UI
+# 4. STREAMLIT APP CONFIGURATION & UI STYLING
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Nexus RAG Engine",
@@ -194,7 +194,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Dark theme CSS with verified parameters
 st.markdown("""
 <style>
     .stApp {
@@ -422,19 +421,18 @@ if user_query:
     if not context_str:
         context_str = "No specific reference documents indexed. Rely on general foundational knowledge."
 
-    system_prompt = f"""You are a precise, elite enterprise technical RAG copilot.
-Analyze the provided document contexts to construct your structural answers.
-
-CRITICAL INSTRUCTIONS:
-- Format all structured breakdowns into clean Markdown tables or bullet lists.
-- NEVER output raw `<br>` HTML tags.
-- Base your answers strictly on the context if relevant.
-
-CONTEXT:
-{context_str}"""
-
+    # Using {context} and {question} as explicit prompt variables to prevent f-string parser collisions with code braces {}
     prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
+        (
+            "system",
+            "You are a precise, elite enterprise technical RAG copilot.\n"
+            "Analyze the provided document contexts to construct your structural answers.\n\n"
+            "CRITICAL INSTRUCTIONS:\n"
+            "- Format all structured breakdowns into clean Markdown tables or bullet lists.\n"
+            "- NEVER output raw <br> HTML tags.\n"
+            "- Base your answers strictly on the context if relevant.\n\n"
+            "CONTEXT:\n{context}"
+        ),
         ("human", "{question}")
     ])
 
@@ -453,7 +451,7 @@ CONTEXT:
             
             with st.chat_message("assistant"):
                 def stream_gen():
-                    for chunk in pipeline.stream({"question": user_query}):
+                    for chunk in pipeline.stream({"context": context_str, "question": user_query}):
                         yield clean_response_markdown(chunk)
                         
                 full_response = st.write_stream(stream_gen)
