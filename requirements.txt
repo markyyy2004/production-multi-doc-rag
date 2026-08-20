@@ -1,0 +1,17 @@
+streamlit
+python-dotenv
+langchain
+langchain-core
+langchain-community
+langchain-groq
+langchain-huggingface
+sentence-transformers
+faiss-cpu
+rank_bm25
+PyMuPDF
+python-docx
+python-pptx
+rapidocr-onnxruntime
+Pillow
+numpy
+pytest

@@ -1,0 +1,35 @@
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Environment Secrets
+.env
+
+# Python Caches & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+tests/__pycache__/
+
+# Pytest Cache
+.pytest_cache/
+
+# Local Vector DB & Retriever Cache
+faiss_index/
+bm25_retriever.pkl
+
+# Uploaded Files & Temporary Storage
+uploaded_docs_cache/
+demo_docs/
+
+# Local SQLite Database
+nexus_rag.db
+*.db
+*.sqlite3
+
+# OS & Editor Files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
