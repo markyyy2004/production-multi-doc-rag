@@ -71,7 +71,7 @@ def init_db():
 init_db()
 
 # -----------------------------------------------------------------------------
-# 3. PARALLEL DOCUMENT EXTRACTION & OCR
+# 3. EXTRACTION & HYBRID RETRIEVAL ENGINES
 # -----------------------------------------------------------------------------
 ocr_engine = RapidOCR()
 
@@ -128,9 +128,6 @@ def extract_text_from_file(file_name, file_bytes):
             pass
     return chunks
 
-# -----------------------------------------------------------------------------
-# 4. HYBRID RETRIEVAL (FAISS + BM25 via RRF)
-# -----------------------------------------------------------------------------
 @st.cache_resource(show_spinner=False)
 def get_embedding_model():
     return HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
@@ -182,10 +179,10 @@ class HybridRetriever:
         return [item["doc"] for item in sorted_rrf[:top_k]]
 
 # -----------------------------------------------------------------------------
-# 5. ORIGINAL POLISHED UI/UX THEME (IDENTICAL TO SCREENSHOT)
+# 4. STREAMLIT APP CONFIGURATION & EXACT UI STYLING
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Nexus Enterprise Multi-Doc Hybrid RAG",
+    page_title="Nexus Knowledge Copilot",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -193,100 +190,150 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    /* Dark Slate Canvas Base */
+    /* Dark Background Palette */
     .stApp {
-        background-color: #06090e;
+        background-color: #05070c;
         color: #c9d1d9;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     
-    /* Clean Sidebar */
     [data-testid="stSidebar"] {
-        background-color: #0d1117 !important;
-        border-right: 1px solid #21262d;
+        background-color: #0b0f17 !important;
+        border-right: 1px solid #1a2233;
     }
     
-    /* Original Message Containers */
+    /* Centered Hero Welcome Box */
+    .welcome-pill {
+        display: inline-block;
+        background: rgba(56, 189, 248, 0.08);
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        color: #38bdf8;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.8px;
+        padding: 5px 14px;
+        border-radius: 20px;
+        margin-bottom: 16px;
+        text-transform: uppercase;
+    }
+    
+    .welcome-title {
+        color: #ffffff;
+        font-size: 2.3rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        margin-bottom: 10px;
+    }
+    
+    .welcome-subtitle {
+        color: #8b949e;
+        font-size: 0.95rem;
+        max-width: 650px;
+        margin: 0 auto 28px auto;
+        line-height: 1.5;
+    }
+    
+    .feature-card {
+        background-color: #0b111e;
+        border: 1px solid #1c2638;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 650px;
+        margin: 0 auto;
+        text-align: left;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+    
+    .feature-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        margin-bottom: 16px;
+    }
+    .feature-row:last-child {
+        margin-bottom: 0;
+    }
+    .feature-title {
+        color: #f0f6fc;
+        font-weight: 700;
+        font-size: 0.95rem;
+        margin-bottom: 2px;
+    }
+    .feature-desc {
+        color: #8b949e;
+        font-size: 0.85rem;
+        line-height: 1.4;
+    }
+
+    /* Message Boxes */
     .chat-container-user {
-        background-color: #0d1117;
-        border: 1px solid #21262d;
+        background-color: #0b111e;
+        border: 1px solid #1c2638;
         border-radius: 8px;
         padding: 12px 16px;
         margin-bottom: 14px;
         display: flex;
         align-items: center;
         gap: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     }
     
     .chat-container-ai {
-        background-color: #0d1117;
-        border: 1px solid #21262d;
+        background-color: #0b111e;
+        border: 1px solid #1c2638;
         border-radius: 8px;
         padding: 16px 20px;
         margin-bottom: 18px;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
     }
     
-    /* Original Markdown Table Architecture */
+    /* Clean Markdown Tables */
     table {
         width: 100%;
         border-collapse: collapse;
         margin: 14px 0;
-        border: 1px solid #30363d;
+        border: 1px solid #212c3d;
         border-radius: 6px;
         overflow: hidden;
     }
     th {
-        background-color: #161b22 !important;
-        color: #58a6ff !important;
+        background-color: #121927 !important;
+        color: #38bdf8 !important;
         padding: 10px 14px;
-        border: 1px solid #30363d;
+        border: 1px solid #212c3d;
         text-align: left;
         font-weight: 600;
     }
     td {
-        background-color: #0d1117 !important;
+        background-color: #0b111e !important;
         color: #c9d1d9 !important;
         padding: 10px 14px;
-        border: 1px solid #21262d;
+        border: 1px solid #1c2638;
         line-height: 1.6;
         vertical-align: top;
     }
     tr:nth-child(even) td {
-        background-color: #10141d !important;
+        background-color: #0e1524 !important;
     }
     
-    /* Cyan Inline Code Highlights */
     code {
-        color: #79c0ff !important;
-        background-color: #1f242c !important;
-        border: 1px solid #30363d !important;
+        color: #38bdf8 !important;
+        background-color: #162032 !important;
+        border: 1px solid #25334c !important;
         padding: 2px 6px !important;
         border-radius: 4px !important;
         font-size: 0.88em !important;
     }
-    
-    /* Operations and Action Buttons */
+
     .stButton>button {
-        background-color: #161b22;
+        background-color: #121927;
         color: #c9d1d9;
-        border: 1px solid #30363d;
+        border: 1px solid #212c3d;
         border-radius: 6px;
         font-weight: 500;
-        transition: all 0.15s ease-in-out;
     }
     .stButton>button:hover {
-        background-color: #21262d;
-        border-color: #8b949e;
+        background-color: #1c2638;
+        border-color: #38bdf8;
         color: #ffffff;
-    }
-    
-    /* Citations Expander */
-    div[data-testid="stExpander"] {
-        background-color: #0d1117 !important;
-        border: 1px solid #21262d !important;
-        border-radius: 6px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -300,8 +347,12 @@ if "retriever" not in st.session_state:
 
 # --- AUTHENTICATION DIALOG ---
 if not st.session_state.authenticated:
-    st.markdown("<h2 style='color:#f0f6fc; font-weight:700;'>⚡ Nexus Enterprise Multi-Doc Hybrid RAG</h2>", unsafe_allow_html=True)
-    st.caption("Secure Multi-Document Hybrid RAG Copilot")
+    st.markdown("""
+    <div style="text-align: center; margin-top: 40px; margin-bottom: 20px;">
+        <h1 style="color: #ffffff; font-weight: 800;">⚡ Nexus Knowledge Copilot</h1>
+        <p style="color: #8b949e;">Context-aware, multi-format conversational intelligence</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     col_l, col_center, col_r = st.columns([1, 1.4, 1])
     with col_center:
@@ -342,30 +393,23 @@ if not st.session_state.authenticated:
 db_conn = get_db_connection()
 
 with st.sidebar:
-    st.markdown(f"👤 **Logged in as:** <code style='color:#58a6ff;'>{st.session_state.username}</code>", unsafe_allow_html=True)
-    if st.button("🚪 Log Out"):
-        st.session_state.authenticated = False
-        st.session_state.username = None
-        st.session_state.retriever = None
-        st.rerun()
-        
-    st.divider()
     st.markdown("### ⚡ NEXUS ENGINE")
-    st.caption("Hybrid BM25 + FAISS Vector Engine")
+    st.caption("Universal Multi-Format RAG Architecture")
     
-    st.markdown("#### 📊 Hybrid Index Status")
+    st.divider()
+    st.markdown("#### 💾 Vector Storage Status")
     if st.session_state.retriever:
-        st.success("🟢 Hybrid Index Active (BM25 + FAISS)")
+        st.success("🟢 Persistent Index Online")
     else:
         st.info("⚪ No Documents Indexed")
         
     st.divider()
-    st.markdown("### 📂 Document Hub")
+    st.markdown("### 📂 Ingestion Hub")
     uploaded_files = st.file_uploader(
         "Upload Documents",
         accept_multiple_files=True,
         type=["pdf", "docx", "pptx", "txt", "py", "md"],
-        label_visibility="collapsed"
+        help="200MB per file • PDF, DOCX, PPTX, TXT, PY, MD"
     )
     
     if st.button("⚡ Process & Index Documents") and uploaded_files:
@@ -401,52 +445,63 @@ with st.sidebar:
             st.session_state.authenticated = False
             st.rerun()
 
-# --- MAIN CHAT VIEWPORT ---
+# --- MAIN CHAT & WELCOME SCREEN ---
 chat_history_rows = db_conn.execute(
     "SELECT role, message FROM chat_history WHERE username = ? ORDER BY timestamp ASC",
     (st.session_state.username,)
 ).fetchall()
 
-# Display Chat History with the exact original cards
-for msg in chat_history_rows:
-    if msg["role"] == "user":
-        st.markdown(f"""
-        <div class="chat-container-user">
-            <span style="color:#a855f7; font-size:1.1rem;">👤</span>
-            <span style="color:#f0f6fc; font-size:0.95rem;">{msg['message']}</span>
+# If no messages exist yet, show the exact Centered Hero Card Box
+if not chat_history_rows:
+    st.markdown("""
+    <div style="text-align: center; margin-top: 45px;">
+        <div class="welcome-pill">⚡ NEXT-GEN AI RAG ENGINE</div>
+        <div class="welcome-title">Nexus Knowledge Copilot</div>
+        <div class="welcome-subtitle">
+            Context-aware, multi-format conversational intelligence powered by LLaMA 3.3, FAISS vector indexing, and RapidOCR.
         </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-        <div class="chat-container-ai">
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-                <span style="color:#f59e0b; font-size:1.1rem;">⚡</span>
-                <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Core Concepts & Architecture (as presented in the notes)</span>
+        <div class="feature-card">
+            <div class="feature-row">
+                <span style="font-size: 1.3rem;">📄</span>
+                <div>
+                    <div class="feature-title">Multi-Document Context Synthesis</div>
+                    <div class="feature-desc">Upload lecture notes, code files, slides, and scanned diagrams simultaneously.</div>
+                </div>
             </div>
-            <div>{msg['message']}</div>
+            <div class="feature-row">
+                <span style="font-size: 1.3rem;">🎯</span>
+                <div>
+                    <div class="feature-title">Granular Source Attribution</div>
+                    <div class="feature-desc">Trace answers back to exact page numbers, slide indexes, and raw extracted snippets.</div>
+                </div>
+            </div>
         </div>
-        """, unsafe_allow_html=True)
-
-# Quick Action Pill Prompts positioned above chat input
-st.divider()
-col_p1, col_p2, col_p3 = st.columns(3)
-preset_clicked = None
-with col_p1:
-    if st.button("💡 Summarize Core Concepts"):
-        preset_clicked = "Summarize core concepts and fundamental architecture covered across the notes."
-with col_p2:
-    if st.button("⚔️ Compare Key Differences"):
-        preset_clicked = "Identify the key components and compare operational structural differences."
-with col_p3:
-    if st.button("📋 Generate Practice Quiz"):
-        preset_clicked = "Generate a comprehensive practice quiz with multiple questions and answers based on the notes."
+    </div>
+    """, unsafe_allow_html=True)
+else:
+    for msg in chat_history_rows:
+        if msg["role"] == "user":
+            st.markdown(f"""
+            <div class="chat-container-user">
+                <span style="color:#a855f7; font-size:1.1rem;">👤</span>
+                <span style="color:#f0f6fc; font-size:0.95rem;">{msg['message']}</span>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div class="chat-container-ai">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                    <span style="color:#f59e0b; font-size:1.1rem;">⚡</span>
+                    <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Core Concepts & Architecture</span>
+                </div>
+                <div>{msg['message']}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
 user_query = st.chat_input("Ask anything about your documents, code, or diagrams...")
-if preset_clicked:
-    user_query = preset_clicked
 
 # -----------------------------------------------------------------------------
-# 6. RETRIEVAL & STREAMING INFERENCE PIPELINE
+# 5. RETRIEVAL & INFERENCE PIPELINE
 # -----------------------------------------------------------------------------
 if user_query:
     db_conn.execute(
@@ -467,16 +522,15 @@ if user_query:
     if not context_str:
         context_str = "No specific reference documents indexed. Rely on general foundational knowledge."
 
-    # Using dynamic {context} input variable to eliminate template f-string errors on code braces
     prompt = ChatPromptTemplate.from_messages([
         (
             "system",
             "You are a precise, elite enterprise technical RAG copilot.\n"
             "Analyze the provided document contexts to construct your structural answers.\n\n"
-            "CRITICAL FORMATTING INSTRUCTIONS:\n"
-            "- Always structure concepts into Markdown tables (| Topic | Key Points |) or bullet lists.\n"
-            "- Format technical tokens, variables, operators, and code using Markdown code formatting (e.g. `int`, `return`, `cout`).\n"
-            "- Never output raw <br> tags.\n"
+            "CRITICAL INSTRUCTIONS:\n"
+            "- Structure all concepts into clean Markdown tables (| Topic | Key Points |) or bullet lists.\n"
+            "- Format tokens, keywords, and code with inline code blocks (`int`, `return`, `cout`).\n"
+            "- Never generate raw <br> tags.\n"
             "- Base your answers strictly on the context if relevant.\n\n"
             "CONTEXT:\n{context}"
         ),
@@ -496,7 +550,6 @@ if user_query:
             
             pipeline = prompt | llm | StrOutputParser()
             
-            # Streaming UI block
             with st.container():
                 st.markdown(f"""
                 <div class="chat-container-user">
@@ -514,7 +567,7 @@ if user_query:
                     <div class="chat-container-ai">
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
                             <span style="color:#f59e0b; font-size:1.1rem;">⚡</span>
-                            <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Core Concepts & Architecture (as presented in the notes)</span>
+                            <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Core Concepts & Architecture</span>
                         </div>
                         <div>{full_response}</div>
                     </div>
