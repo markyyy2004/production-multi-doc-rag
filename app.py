@@ -39,7 +39,7 @@ from PIL import Image
 import numpy as np
 
 # -----------------------------------------------------------------------------
-# 2. PERSISTENT STORAGE (SQLite)
+# 2. PERSISTENT STORAGE LAYER (SQLite)
 # -----------------------------------------------------------------------------
 DB_FILE = "users_history.db"
 
@@ -178,14 +178,8 @@ class HybridRetriever:
         sorted_rrf = sorted(rrf_scores.values(), key=lambda x: x["score"], reverse=True)
         return [item["doc"] for item in sorted_rrf[:top_k]]
 
-def clean_response_markdown(text: str) -> str:
-    """Removes broken raw html tags and cleans markdown formatting."""
-    text = re.sub(r'(?i)<br\s*/?>\s*•?', '\n\n* ', text)
-    text = re.sub(r'<[^>]+>', '', text)
-    return text
-
 # -----------------------------------------------------------------------------
-# 4. STREAMLIT APP CONFIGURATION & MODERN DARK AESTHETIC UI
+# 4. STREAMLIT APP CONFIGURATION & MODERN GLASSMORPHIC UI
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Nexus Knowledge Copilot",
@@ -196,9 +190,9 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    /* Global Obsidian Palette */
+    /* Dark Slate Canvas Base */
     .stApp {
-        background-color: #05070c;
+        background-color: #06090e;
         color: #c9d1d9;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
@@ -208,7 +202,7 @@ st.markdown("""
         border-right: 1px solid #1a2233;
     }
 
-    /* Centered Welcome Screen */
+    /* Centered Welcome Hero Screen */
     .welcome-pill {
         display: inline-block;
         background: rgba(56, 189, 248, 0.08);
@@ -289,13 +283,14 @@ st.markdown("""
         border-radius: 8px;
         padding: 16px 20px;
         margin-bottom: 18px;
+        line-height: 1.6;
     }
     
-    /* Structured Markdown Tables */
+    /* Pixel-Perfect Dark Markdown Tables */
     table {
         width: 100%;
         border-collapse: collapse;
-        margin: 14px 0;
+        margin: 16px 0;
         border: 1px solid #212c3d;
         border-radius: 6px;
         overflow: hidden;
@@ -313,7 +308,6 @@ st.markdown("""
         color: #c9d1d9 !important;
         padding: 10px 14px;
         border: 1px solid #1c2638;
-        line-height: 1.6;
         vertical-align: top;
     }
     tr:nth-child(even) td {
@@ -329,7 +323,6 @@ st.markdown("""
         font-size: 0.88em !important;
     }
 
-    /* Action Buttons */
     .stButton>button {
         background-color: #121927;
         color: #c9d1d9;
@@ -343,8 +336,7 @@ st.markdown("""
         border-color: #38bdf8;
         color: #ffffff;
     }
-
-    /* Sidebar Status Badges */
+    
     .status-badge-active {
         background: rgba(34, 197, 94, 0.1);
         border: 1px solid rgba(34, 197, 94, 0.3);
@@ -495,7 +487,6 @@ chat_history_rows = db_conn.execute(
 
 preset_clicked = None
 
-# If no messages exist yet, render the exact Centered Hero + Feature Cards + Action Pills
 if not chat_history_rows:
     st.markdown("""
     <div style="text-align: center; margin-top: 35px;">
@@ -523,7 +514,6 @@ if not chat_history_rows:
     </div>
     """, unsafe_allow_html=True)
     
-    # Centered Prompt Pills for Empty State
     col_p1, col_p2, col_p3 = st.columns(3)
     with col_p1:
         if st.button("💡 Summarize Core Concepts"):
@@ -550,11 +540,10 @@ else:
                     <span style="color:#f59e0b; font-size:1.1rem;">⚡</span>
                     <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Core Concepts & Architecture (as presented in the notes)</span>
                 </div>
-                <div>{clean_response_markdown(msg['message'])}</div>
+                <div>{msg['message']}</div>
             </div>
             """, unsafe_allow_html=True)
             
-    # Bottom Action Pills when chat is active
     st.divider()
     col_p1, col_p2, col_p3 = st.columns(3)
     with col_p1:
@@ -572,7 +561,7 @@ if preset_clicked:
     user_query = preset_clicked
 
 # -----------------------------------------------------------------------------
-# 5. RETRIEVAL & INFERENCE PIPELINE
+# 5. RETRIEVAL & STREAMING INFERENCE PIPELINE
 # -----------------------------------------------------------------------------
 if user_query:
     db_conn.execute(
@@ -593,16 +582,18 @@ if user_query:
     if not context_str:
         context_str = "No specific reference documents indexed. Rely on general foundational knowledge."
 
+    # Strict table formatting instructions to prevent broken cell overflows
     prompt = ChatPromptTemplate.from_messages([
         (
             "system",
             "You are a precise, elite enterprise technical RAG copilot.\n"
             "Analyze the provided document contexts to construct your structural answers.\n\n"
-            "CRITICAL INSTRUCTIONS:\n"
-            "- Always structure concepts into Markdown tables (| Topic | Key Points |) or bullet lists.\n"
-            "- Format technical tokens, variables, operators, and code with inline code blocks (`int`, `return`, `cout`).\n"
-            "- Never output raw <br> tags.\n"
-            "- Base your answers strictly on the context if relevant.\n\n"
+            "CRITICAL TABLE & FORMATTING RULES:\n"
+            "1. When constructing Markdown tables, EVERY ROW must be on a single continuous line. Never insert line breaks or bullet points inside a table cell.\n"
+            "2. Separate multiple items inside a table cell using semicolons (;) or commas, never raw newlines.\n"
+            "3. Format technical keywords and code with inline code blocks (e.g. `int`, `return`, `cout`, `app.jar`).\n"
+            "4. Never output raw <br> or <br/> tags under any circumstance.\n"
+            "5. If a concept is too complex for a single cell, use structured Markdown bullet points instead of a table.\n\n"
             "CONTEXT:\n{context}"
         ),
         ("human", "{question}")
@@ -634,14 +625,13 @@ if user_query:
                 
                 for chunk in pipeline.stream({"context": context_str, "question": user_query}):
                     full_response += chunk
-                    cleaned_chunk = clean_response_markdown(full_response)
                     response_placeholder.markdown(f"""
                     <div class="chat-container-ai">
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
                             <span style="color:#f59e0b; font-size:1.1rem;">⚡</span>
-                            <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Core Concepts & Architecture</span>
+                            <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Core Concepts & Architecture (as presented in the notes)</span>
                         </div>
-                        <div>{cleaned_chunk}</div>
+                        <div>{full_response}</div>
                     </div>
                     """, unsafe_allow_html=True)
                 
