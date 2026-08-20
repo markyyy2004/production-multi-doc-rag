@@ -5,6 +5,7 @@ langchain-core
 langchain-community
 langchain-groq
 langchain-huggingface
+langchain-text-splitters
 sentence-transformers
 faiss-cpu
 rank_bm25
