@@ -178,8 +178,13 @@ class HybridRetriever:
         sorted_rrf = sorted(rrf_scores.values(), key=lambda x: x["score"], reverse=True)
         return [item["doc"] for item in sorted_rrf[:top_k]]
 
+def clean_response_markdown(text: str) -> str:
+    text = re.sub(r'(?i)<br\s*/?>\s*•?', '\n\n* ', text)
+    text = re.sub(r'<[^>]+>', '', text)
+    return text
+
 # -----------------------------------------------------------------------------
-# 4. STREAMLIT APP CONFIGURATION & TARGETED THEME STYLING
+# 4. STREAMLIT APP CONFIGURATION & EXACT OBSIDIAN UI
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Nexus Knowledge Copilot",
@@ -201,70 +206,7 @@ st.markdown("""
     border-right: 1px solid #1a2233;
 }
 
-/* Centered Welcome Hero Screen */
-.welcome-pill {
-    display: inline-block;
-    background: rgba(56, 189, 248, 0.08);
-    border: 1px solid rgba(56, 189, 248, 0.25);
-    color: #38bdf8;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.8px;
-    padding: 5px 14px;
-    border-radius: 20px;
-    margin-bottom: 16px;
-    text-transform: uppercase;
-}
-
-.welcome-title {
-    color: #ffffff;
-    font-size: 2.3rem;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    margin-bottom: 10px;
-}
-
-.welcome-subtitle {
-    color: #8b949e;
-    font-size: 0.95rem;
-    max-width: 650px;
-    margin: 0 auto 24px auto;
-    line-height: 1.5;
-}
-
-.feature-card {
-    background-color: #0b111e;
-    border: 1px solid #1c2638;
-    border-radius: 12px;
-    padding: 24px;
-    max-width: 680px;
-    margin: 0 auto 24px auto;
-    text-align: left;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-}
-
-.feature-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    margin-bottom: 16px;
-}
-.feature-row:last-child {
-    margin-bottom: 0;
-}
-.feature-title {
-    color: #f0f6fc;
-    font-weight: 700;
-    font-size: 0.95rem;
-    margin-bottom: 2px;
-}
-.feature-desc {
-    color: #8b949e;
-    font-size: 0.85rem;
-    line-height: 1.4;
-}
-
-/* Message Containers */
+/* User Message Block */
 .chat-container-user {
     background-color: #0b111e;
     border: 1px solid #1c2638;
@@ -276,6 +218,7 @@ st.markdown("""
     gap: 12px;
 }
 
+/* AI Output Container */
 .chat-container-ai {
     background-color: #0b111e;
     border: 1px solid #1c2638;
@@ -285,11 +228,11 @@ st.markdown("""
     line-height: 1.6;
 }
 
-/* Markdown Tables */
+/* Dark Structured Markdown Tables */
 table {
     width: 100%;
     border-collapse: collapse;
-    margin: 16px 0;
+    margin: 14px 0;
     border: 1px solid #212c3d;
     border-radius: 6px;
     overflow: hidden;
@@ -313,6 +256,7 @@ tr:nth-child(even) td {
     background-color: #0e1524 !important;
 }
 
+/* High Contrast Code Pills */
 code {
     color: #38bdf8 !important;
     background-color: #162032 !important;
@@ -322,6 +266,7 @@ code {
     font-size: 0.88em !important;
 }
 
+/* Action Buttons */
 .stButton>button {
     background-color: #121927;
     color: #c9d1d9;
@@ -336,6 +281,7 @@ code {
     color: #ffffff;
 }
 
+/* Sidebar Status Badges */
 .status-badge-active {
     background: rgba(34, 197, 94, 0.1);
     border: 1px solid rgba(34, 197, 94, 0.3);
@@ -360,6 +306,15 @@ code {
     align-items: center;
     gap: 8px;
 }
+
+/* Citation Source Box */
+.citation-box {
+    background: #0e1524;
+    border: 1px solid #1c2638;
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 12px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -369,14 +324,16 @@ if "username" not in st.session_state:
     st.session_state.username = None
 if "retriever" not in st.session_state:
     st.session_state.retriever = None
-if "raw_docs" not in st.session_state:
-    st.session_state.raw_docs = []
+if "last_citations" not in st.session_state:
+    st.session_state.last_citations = []
+if "inspect_modal_content" not in st.session_state:
+    st.session_state.inspect_modal_content = None
 
-# --- AUTHENTICATION MODAL ---
+# --- AUTHENTICATION DIALOG ---
 if not st.session_state.authenticated:
     st.markdown("""
-<div style="text-align: center; margin-top: 50px; margin-bottom: 20px;">
-    <h1 style="color: #ffffff; font-size: 2.3rem; font-weight: 800;">⚡ Nexus Knowledge Copilot</h1>
+<div style="text-align: center; margin-top: 55px; margin-bottom: 25px;">
+    <h1 style="color: #ffffff; font-size: 2.3rem; font-weight: 800; letter-spacing: -0.5px;">⚡ Nexus Knowledge Copilot</h1>
     <p style="color: #8b949e; font-size: 0.95rem;">Context-aware, multi-format conversational intelligence</p>
 </div>
 """, unsafe_allow_html=True)
@@ -421,15 +378,22 @@ if not st.session_state.authenticated:
 db_conn = get_db_connection()
 
 with st.sidebar:
-    st.markdown("### ⚡ NEXUS ENGINE")
-    st.caption("Universal Multi-Format RAG Architecture")
-    
+    st.markdown(f"👤 **Logged in as:** <code style='color:#38bdf8;'>{st.session_state.username}</code>", unsafe_allow_html=True)
+    if st.button("🚪 Log Out", use_container_width=True):
+        st.session_state.authenticated = False
+        st.session_state.username = None
+        st.session_state.retriever = None
+        st.rerun()
+        
     st.divider()
-    st.markdown("#### 💾 Vector Storage Status")
+    st.markdown("### ⚡ NEXUS ENGINE")
+    st.caption("Hybrid BM25 + FAISS Vector Engine")
+    
+    st.markdown("#### 📊 Hybrid Index Status")
     if st.session_state.retriever:
         st.markdown("""
 <div class="status-badge-active">
-    <span>🟢</span> Persistent Index Online
+    <span>🟢</span> Hybrid Index Active (BM25 + FAISS)
 </div>
 """, unsafe_allow_html=True)
     else:
@@ -440,7 +404,7 @@ with st.sidebar:
 """, unsafe_allow_html=True)
         
     st.divider()
-    st.markdown("### 📂 Ingestion Hub")
+    st.markdown("### 📂 Document Hub")
     uploaded_files = st.file_uploader(
         "Upload Documents",
         accept_multiple_files=True,
@@ -459,25 +423,11 @@ with st.sidebar:
                     parsed_intelligence.append(chunk)
                     
         if parsed_intelligence:
-            st.session_state.raw_docs = parsed_intelligence
             st.session_state.retriever = HybridRetriever(parsed_intelligence)
             st.success(f"Indexed {len(uploaded_files)} file(s) successfully!")
             st.rerun()
         else:
             st.error("No extractable textual content found.")
-
-    # --- RESTORED: VIEW DOCUMENT / KNOWLEDGE BASE INSPECTOR ---
-    if st.session_state.raw_docs:
-        st.divider()
-        st.markdown("### 📑 Indexed Knowledge")
-        with st.expander("🔍 View Ingested Content", expanded=False):
-            doc_sources = list(set([d.get("source", "Document") for d in st.session_state.raw_docs]))
-            selected_source = st.selectbox("Select File", doc_sources)
-            
-            selected_pages = [d for d in st.session_state.raw_docs if d.get("source") == selected_source]
-            for p in selected_pages:
-                st.markdown(f"**Page {p.get('page', 1)}**")
-                st.text_area(f"Content_p{p.get('page', 1)}", p.get("text", "")[:400] + "...", height=90, disabled=True, label_visibility="collapsed")
             
     st.divider()
     st.markdown("### ⚙️ Operations")
@@ -486,6 +436,7 @@ with st.sidebar:
         if st.button("🧹 Clear Chat", use_container_width=True):
             db_conn.execute("DELETE FROM chat_history WHERE username = ?", (st.session_state.username,))
             db_conn.commit()
+            st.session_state.last_citations = []
             st.rerun()
     with col_wdb:
         if st.button("🗑️ Wipe DB", use_container_width=True):
@@ -495,89 +446,77 @@ with st.sidebar:
             st.session_state.authenticated = False
             st.rerun()
 
-# --- MAIN CHAT & HERO WELCOME VIEWPORT ---
+# --- MAIN CHAT VIEWPORT ---
 chat_history_rows = db_conn.execute(
     "SELECT role, message FROM chat_history WHERE username = ? ORDER BY timestamp ASC",
     (st.session_state.username,)
 ).fetchall()
 
-preset_clicked = None
-
-if not chat_history_rows:
-    st.markdown("""
-<div style="text-align: center; margin-top: 35px;">
-    <div class="welcome-pill">⚡ NEXT-GEN AI RAG ENGINE</div>
-    <div class="welcome-title">Nexus Knowledge Copilot</div>
-    <div class="welcome-subtitle">
-        Context-aware, multi-format conversational intelligence powered by Groq LLaMA, FAISS vector indexing, and RapidOCR.
-    </div>
-    <div class="feature-card">
-        <div class="feature-row">
-            <span style="font-size: 1.3rem;">📄</span>
-            <div>
-                <div class="feature-title">Multi-Document Context Synthesis</div>
-                <div class="feature-desc">Upload lecture notes, code files, slides, and scanned diagrams simultaneously.</div>
-            </div>
-        </div>
-        <div class="feature-row">
-            <span style="font-size: 1.3rem;">🎯</span>
-            <div>
-                <div class="feature-title">Granular Source Attribution</div>
-                <div class="feature-desc">Trace answers back to exact page numbers, slide indexes, and raw extracted snippets.</div>
-            </div>
-        </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-    
-    col_p1, col_p2, col_p3 = st.columns(3)
-    with col_p1:
-        if st.button("💡 Summarize Core Concepts", use_container_width=True):
-            preset_clicked = "Summarize core concepts and fundamental architecture covered across the notes."
-    with col_p2:
-        if st.button("⚔️ Compare Key Differences", use_container_width=True):
-            preset_clicked = "Identify the key components and compare operational structural differences."
-    with col_p3:
-        if st.button("📋 Generate Practice Quiz", use_container_width=True):
-            preset_clicked = "Generate a comprehensive practice quiz with multiple questions and answers based on the notes."
-else:
-    for msg in chat_history_rows:
-        if msg["role"] == "user":
-            st.markdown(f"""
+for msg in chat_history_rows:
+    if msg["role"] == "user":
+        st.markdown(f"""
 <div class="chat-container-user">
     <span style="color:#a855f7; font-size:1.1rem;">👤</span>
     <span style="color:#f0f6fc; font-size:0.95rem;">{msg['message']}</span>
 </div>
 """, unsafe_allow_html=True)
-        else:
-            st.markdown(f"""
+    else:
+        st.markdown(f"""
 <div class="chat-container-ai">
     <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
         <span style="color:#f59e0b; font-size:1.1rem;">⚡</span>
-        <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Core Concepts & Architecture (as presented in the notes)</span>
+        <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Core concepts & architecture covered</span>
     </div>
-    <div>{msg['message']}</div>
+    <div>{clean_response_markdown(msg['message'])}</div>
 </div>
 """, unsafe_allow_html=True)
-            
-    st.divider()
-    col_p1, col_p2, col_p3 = st.columns(3)
-    with col_p1:
-        if st.button("💡 Summarize Core Concepts", use_container_width=True):
-            preset_clicked = "Summarize core concepts and fundamental architecture covered across the notes."
-    with col_p2:
-        if st.button("⚔️ Compare Key Differences", use_container_width=True):
-            preset_clicked = "Identify the key components and compare operational structural differences."
-    with col_p3:
-        if st.button("📋 Generate Practice Quiz", use_container_width=True):
-            preset_clicked = "Generate a comprehensive practice quiz with multiple questions and answers based on the notes."
+
+# Restored: Citations Drawer with Individual "Inspect" Modals
+if st.session_state.last_citations:
+    with st.expander("🔎 Verified Document Citations", expanded=True):
+        for idx, cit in enumerate(st.session_state.last_citations):
+            col_c_text, col_c_btn = st.columns([4.5, 1])
+            with col_c_text:
+                st.markdown(f"**Source {idx+1}:** <code style='color:#38bdf8;'>{cit['source']}</code> **(Page {cit['page']})**", unsafe_allow_html=True)
+                st.caption(f"{cit['snippet'][:180]}...")
+            with col_c_btn:
+                if st.button(f"👁️ Inspect", key=f"inspect_btn_{idx}", use_container_width=True):
+                    st.session_state.inspect_modal_content = cit
+                    st.rerun()
+
+# Inspection Drawer / Modal Display
+if st.session_state.inspect_modal_content:
+    with st.container(border=True):
+        c_mod = st.session_state.inspect_modal_content
+        col_m_head, col_m_close = st.columns([5, 1])
+        with col_m_head:
+            st.markdown(f"### 📄 Source Inspector: `{c_mod['source']}` (Page {c_mod['page']})")
+        with col_m_close:
+            if st.button("✖ Close", key="close_inspect"):
+                st.session_state.inspect_modal_content = None
+                st.rerun()
+        st.text_area("Full Retrieved Context Chunk", c_mod["snippet"], height=160, disabled=True)
+
+# Bottom Action Pills
+st.divider()
+col_p1, col_p2, col_p3 = st.columns(3)
+preset_clicked = None
+with col_p1:
+    if st.button("💡 Summarize Core Concepts", use_container_width=True):
+        preset_clicked = "Summarize core concepts and fundamental architecture covered across the notes."
+with col_p2:
+    if st.button("⚔️ Compare Key Differences", use_container_width=True):
+        preset_clicked = "Identify the key components and compare operational structural differences."
+with col_p3:
+    if st.button("📋 Generate Practice Quiz", use_container_width=True):
+        preset_clicked = "Generate a comprehensive practice quiz with multiple questions and answers based on the notes."
 
 user_query = st.chat_input("Ask anything about your documents, code, or diagrams...")
 if preset_clicked:
     user_query = preset_clicked
 
 # -----------------------------------------------------------------------------
-# 5. RETRIEVAL & STREAMING INFERENCE PIPELINE
+# 5. RETRIEVAL & INFERENCE PIPELINE
 # -----------------------------------------------------------------------------
 if user_query:
     db_conn.execute(
@@ -587,16 +526,22 @@ if user_query:
     db_conn.commit()
     
     context_str = ""
-    source_citations = []
+    raw_citations = []
     
     if st.session_state.retriever:
         extracted_chunks = st.session_state.retriever.search(user_query, top_k=4)
         for idx, doc in enumerate(extracted_chunks):
             context_str += f"\n[Context Chunk {idx+1}]: {doc.page_content}\n"
-            source_citations.append(f"📄 File: `{doc.metadata.get('source')}` | Page: **{doc.metadata.get('page')}**")
+            raw_citations.append({
+                "source": doc.metadata.get("source", "Uploaded File"),
+                "page": doc.metadata.get("page", 1),
+                "snippet": doc.page_content
+            })
             
     if not context_str:
         context_str = "No specific reference documents indexed. Rely on general foundational knowledge."
+
+    st.session_state.last_citations = raw_citations
 
     prompt = ChatPromptTemplate.from_messages([
         (
@@ -606,7 +551,7 @@ if user_query:
             "CRITICAL TABLE & FORMATTING RULES:\n"
             "1. When constructing Markdown tables, EVERY ROW must be on a single continuous line. Never insert line breaks or bullet points inside a table cell.\n"
             "2. Separate multiple items inside a table cell using semicolons (;) or commas, never raw newlines.\n"
-            "3. Format technical keywords and code with inline code blocks (e.g. `int`, `return`, `cout`, `app.jar`).\n"
+            "3. Format technical keywords and code with inline code blocks (e.g. `int`, `return`, `cout`, `app.jar`, `ifstream`, `try`, `catch`, `int &ref`).\n"
             "4. Never output raw <br> or <br/> tags under any circumstance.\n"
             "5. If a concept is too complex for a single cell, use structured Markdown bullet points instead of a table.\n\n"
             "CONTEXT:\n{context}"
@@ -640,20 +585,16 @@ if user_query:
                 
                 for chunk in pipeline.stream({"context": context_str, "question": user_query}):
                     full_response += chunk
+                    cleaned_chunk = clean_response_markdown(full_response)
                     response_placeholder.markdown(f"""
 <div class="chat-container-ai">
     <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
         <span style="color:#f59e0b; font-size:1.1rem;">⚡</span>
-        <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Core Concepts & Architecture (as presented in the notes)</span>
+        <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Core concepts & architecture covered</span>
     </div>
-    <div>{full_response}</div>
+    <div>{cleaned_chunk}</div>
 </div>
 """, unsafe_allow_html=True)
-                
-                if source_citations:
-                    with st.expander("🔎 Verified Document Citations", expanded=False):
-                        for citation in sorted(list(set(source_citations))):
-                            st.markdown(citation)
                             
             db_conn.execute(
                 "INSERT INTO chat_history (username, role, message) VALUES (?, ?, ?)",
