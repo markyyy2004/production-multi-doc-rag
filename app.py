@@ -178,8 +178,14 @@ class HybridRetriever:
         sorted_rrf = sorted(rrf_scores.values(), key=lambda x: x["score"], reverse=True)
         return [item["doc"] for item in sorted_rrf[:top_k]]
 
+def clean_response_markdown(text: str) -> str:
+    """Removes broken raw html tags and cleans markdown formatting."""
+    text = re.sub(r'(?i)<br\s*/?>\s*•?', '\n\n* ', text)
+    text = re.sub(r'<[^>]+>', '', text)
+    return text
+
 # -----------------------------------------------------------------------------
-# 4. STREAMLIT APP CONFIGURATION & EXACT UI STYLING
+# 4. STREAMLIT APP CONFIGURATION & MODERN DARK AESTHETIC UI
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Nexus Knowledge Copilot",
@@ -190,7 +196,7 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    /* Dark Background Palette */
+    /* Global Obsidian Palette */
     .stApp {
         background-color: #05070c;
         color: #c9d1d9;
@@ -201,8 +207,8 @@ st.markdown("""
         background-color: #0b0f17 !important;
         border-right: 1px solid #1a2233;
     }
-    
-    /* Centered Hero Welcome Box */
+
+    /* Centered Welcome Screen */
     .welcome-pill {
         display: inline-block;
         background: rgba(56, 189, 248, 0.08);
@@ -229,7 +235,7 @@ st.markdown("""
         color: #8b949e;
         font-size: 0.95rem;
         max-width: 650px;
-        margin: 0 auto 28px auto;
+        margin: 0 auto 24px auto;
         line-height: 1.5;
     }
     
@@ -238,8 +244,8 @@ st.markdown("""
         border: 1px solid #1c2638;
         border-radius: 12px;
         padding: 24px;
-        max-width: 650px;
-        margin: 0 auto;
+        max-width: 680px;
+        margin: 0 auto 24px auto;
         text-align: left;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     }
@@ -265,7 +271,7 @@ st.markdown("""
         line-height: 1.4;
     }
 
-    /* Message Boxes */
+    /* Message Containers */
     .chat-container-user {
         background-color: #0b111e;
         border: 1px solid #1c2638;
@@ -285,7 +291,7 @@ st.markdown("""
         margin-bottom: 18px;
     }
     
-    /* Clean Markdown Tables */
+    /* Structured Markdown Tables */
     table {
         width: 100%;
         border-collapse: collapse;
@@ -323,17 +329,45 @@ st.markdown("""
         font-size: 0.88em !important;
     }
 
+    /* Action Buttons */
     .stButton>button {
         background-color: #121927;
         color: #c9d1d9;
         border: 1px solid #212c3d;
         border-radius: 6px;
         font-weight: 500;
+        transition: all 0.2s ease;
     }
     .stButton>button:hover {
         background-color: #1c2638;
         border-color: #38bdf8;
         color: #ffffff;
+    }
+
+    /* Sidebar Status Badges */
+    .status-badge-active {
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        color: #4ade80;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .status-badge-inactive {
+        background: rgba(148, 163, 184, 0.08);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        color: #94a3b8;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -399,9 +433,17 @@ with st.sidebar:
     st.divider()
     st.markdown("#### 💾 Vector Storage Status")
     if st.session_state.retriever:
-        st.success("🟢 Persistent Index Online")
+        st.markdown("""
+        <div class="status-badge-active">
+            <span>🟢</span> Persistent Index Online
+        </div>
+        """, unsafe_allow_html=True)
     else:
-        st.info("⚪ No Documents Indexed")
+        st.markdown("""
+        <div class="status-badge-inactive">
+            <span>⚪</span> No Documents Indexed
+        </div>
+        """, unsafe_allow_html=True)
         
     st.divider()
     st.markdown("### 📂 Ingestion Hub")
@@ -445,20 +487,22 @@ with st.sidebar:
             st.session_state.authenticated = False
             st.rerun()
 
-# --- MAIN CHAT & WELCOME SCREEN ---
+# --- MAIN CHAT & HERO WELCOME VIEWPORT ---
 chat_history_rows = db_conn.execute(
     "SELECT role, message FROM chat_history WHERE username = ? ORDER BY timestamp ASC",
     (st.session_state.username,)
 ).fetchall()
 
-# If no messages exist yet, show the exact Centered Hero Card Box
+preset_clicked = None
+
+# If no messages exist yet, render the exact Centered Hero + Feature Cards + Action Pills
 if not chat_history_rows:
     st.markdown("""
-    <div style="text-align: center; margin-top: 45px;">
+    <div style="text-align: center; margin-top: 35px;">
         <div class="welcome-pill">⚡ NEXT-GEN AI RAG ENGINE</div>
         <div class="welcome-title">Nexus Knowledge Copilot</div>
         <div class="welcome-subtitle">
-            Context-aware, multi-format conversational intelligence powered by LLaMA 3.3, FAISS vector indexing, and RapidOCR.
+            Context-aware, multi-format conversational intelligence powered by Groq LLaMA, FAISS vector indexing, and RapidOCR.
         </div>
         <div class="feature-card">
             <div class="feature-row">
@@ -478,6 +522,18 @@ if not chat_history_rows:
         </div>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Centered Prompt Pills for Empty State
+    col_p1, col_p2, col_p3 = st.columns(3)
+    with col_p1:
+        if st.button("💡 Summarize Core Concepts"):
+            preset_clicked = "Summarize core concepts and fundamental architecture covered across the notes."
+    with col_p2:
+        if st.button("⚔️ Compare Key Differences"):
+            preset_clicked = "Identify the key components and compare operational structural differences."
+    with col_p3:
+        if st.button("📋 Generate Practice Quiz"):
+            preset_clicked = "Generate a comprehensive practice quiz with multiple questions and answers based on the notes."
 else:
     for msg in chat_history_rows:
         if msg["role"] == "user":
@@ -492,13 +548,28 @@ else:
             <div class="chat-container-ai">
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
                     <span style="color:#f59e0b; font-size:1.1rem;">⚡</span>
-                    <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Core Concepts & Architecture</span>
+                    <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Core Concepts & Architecture (as presented in the notes)</span>
                 </div>
-                <div>{msg['message']}</div>
+                <div>{clean_response_markdown(msg['message'])}</div>
             </div>
             """, unsafe_allow_html=True)
+            
+    # Bottom Action Pills when chat is active
+    st.divider()
+    col_p1, col_p2, col_p3 = st.columns(3)
+    with col_p1:
+        if st.button("💡 Summarize Core Concepts"):
+            preset_clicked = "Summarize core concepts and fundamental architecture covered across the notes."
+    with col_p2:
+        if st.button("⚔️ Compare Key Differences"):
+            preset_clicked = "Identify the key components and compare operational structural differences."
+    with col_p3:
+        if st.button("📋 Generate Practice Quiz"):
+            preset_clicked = "Generate a comprehensive practice quiz with multiple questions and answers based on the notes."
 
 user_query = st.chat_input("Ask anything about your documents, code, or diagrams...")
+if preset_clicked:
+    user_query = preset_clicked
 
 # -----------------------------------------------------------------------------
 # 5. RETRIEVAL & INFERENCE PIPELINE
@@ -528,9 +599,9 @@ if user_query:
             "You are a precise, elite enterprise technical RAG copilot.\n"
             "Analyze the provided document contexts to construct your structural answers.\n\n"
             "CRITICAL INSTRUCTIONS:\n"
-            "- Structure all concepts into clean Markdown tables (| Topic | Key Points |) or bullet lists.\n"
-            "- Format tokens, keywords, and code with inline code blocks (`int`, `return`, `cout`).\n"
-            "- Never generate raw <br> tags.\n"
+            "- Always structure concepts into Markdown tables (| Topic | Key Points |) or bullet lists.\n"
+            "- Format technical tokens, variables, operators, and code with inline code blocks (`int`, `return`, `cout`).\n"
+            "- Never output raw <br> tags.\n"
             "- Base your answers strictly on the context if relevant.\n\n"
             "CONTEXT:\n{context}"
         ),
@@ -563,13 +634,14 @@ if user_query:
                 
                 for chunk in pipeline.stream({"context": context_str, "question": user_query}):
                     full_response += chunk
+                    cleaned_chunk = clean_response_markdown(full_response)
                     response_placeholder.markdown(f"""
                     <div class="chat-container-ai">
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
                             <span style="color:#f59e0b; font-size:1.1rem;">⚡</span>
                             <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Core Concepts & Architecture</span>
                         </div>
-                        <div>{full_response}</div>
+                        <div>{cleaned_chunk}</div>
                     </div>
                     """, unsafe_allow_html=True)
                 
