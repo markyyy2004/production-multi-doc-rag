@@ -369,6 +369,8 @@ if "username" not in st.session_state:
     st.session_state.username = None
 if "retriever" not in st.session_state:
     st.session_state.retriever = None
+if "raw_docs" not in st.session_state:
+    st.session_state.raw_docs = []
 
 # --- AUTHENTICATION MODAL ---
 if not st.session_state.authenticated:
@@ -457,11 +459,25 @@ with st.sidebar:
                     parsed_intelligence.append(chunk)
                     
         if parsed_intelligence:
+            st.session_state.raw_docs = parsed_intelligence
             st.session_state.retriever = HybridRetriever(parsed_intelligence)
             st.success(f"Indexed {len(uploaded_files)} file(s) successfully!")
             st.rerun()
         else:
             st.error("No extractable textual content found.")
+
+    # --- RESTORED: VIEW DOCUMENT / KNOWLEDGE BASE INSPECTOR ---
+    if st.session_state.raw_docs:
+        st.divider()
+        st.markdown("### 📑 Indexed Knowledge")
+        with st.expander("🔍 View Ingested Content", expanded=False):
+            doc_sources = list(set([d.get("source", "Document") for d in st.session_state.raw_docs]))
+            selected_source = st.selectbox("Select File", doc_sources)
+            
+            selected_pages = [d for d in st.session_state.raw_docs if d.get("source") == selected_source]
+            for p in selected_pages:
+                st.markdown(f"**Page {p.get('page', 1)}**")
+                st.text_area(f"Content_p{p.get('page', 1)}", p.get("text", "")[:400] + "...", height=90, disabled=True, label_visibility="collapsed")
             
     st.divider()
     st.markdown("### ⚙️ Operations")
