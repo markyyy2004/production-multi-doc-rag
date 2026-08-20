@@ -20,10 +20,10 @@ jobs:
           python-version: "3.10"
           cache: "pip"
 
-      - name: Install System Dependencies
+      - name: Install Linux System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-glx
+          sudo apt-get install -y libgl1 libglib2.0-0 libgomp1
 
       - name: Install Python Dependencies
         run: |
@@ -34,5 +34,6 @@ jobs:
       - name: Run Pytest Test Suite
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          PYTHONPATH: .
         run: |
           python -m pytest -v
