@@ -8,19 +8,24 @@ import streamlit as st
 from dotenv import load_dotenv
 
 # -----------------------------------------------------------------------------
-# 1. ENVIRONMENT & SECRETS SYNCHRONIZATION
+# 1. ENVIRONMENT & SECRETS SYNCHRONIZATION (PYTEST SAFE)
 # -----------------------------------------------------------------------------
 load_dotenv()
 
 groq_api_key = ""
-if "GROQ_API_KEY" in st.secrets:
-    groq_api_key = st.secrets["GROQ_API_KEY"].strip()
-    os.environ["GROQ_API_KEY"] = groq_api_key
-elif os.getenv("GROQ_API_KEY"):
+try:
+    if hasattr(st, "secrets") and "GROQ_API_KEY" in st.secrets:
+        groq_api_key = str(st.secrets["GROQ_API_KEY"]).strip()
+        os.environ["GROQ_API_KEY"] = groq_api_key
+except Exception:
+    pass
+
+if not groq_api_key:
     groq_api_key = os.getenv("GROQ_API_KEY", "").strip()
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.documents import Document as LC_Doc
 from langchain_groq import ChatGroq
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
@@ -31,7 +36,7 @@ except ImportError:
     from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 import fitz  # PyMuPDF
-from docx import Document
+from docx import Document as DocxReader
 from pptx import Presentation
 from rapidocr_onnxruntime import RapidOCR
 from rank_bm25 import BM25Okapi
@@ -75,88 +80,160 @@ init_db()
 # -----------------------------------------------------------------------------
 ocr_engine = RapidOCR()
 
-def parse_pdf_page(page_data):
+def safe_ocr_extract(img_array):
+    """Safely extracts text from an image array via RapidOCR."""
+    try:
+        ocr_result, _ = ocr_engine(img_array)
+        if ocr_result:
+            return "\n".join([line[1] for line in ocr_result if line[2] >= 0.50])
+    except Exception:
+        pass
+    return ""
+
+def parse_pdf_page(page_data, source_name="Uploaded PDF"):
     page_num, page_layout = page_data
     text = page_layout.get_text().strip()
     if not text:
         try:
             pix = page_layout.get_pixmap(dpi=150)
             img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-            ocr_result, _ = ocr_engine(np.array(img))
-            if ocr_result:
-                text = "\n".join([line[1] for line in ocr_result if line[2] >= 0.50])
+            extracted_ocr = safe_ocr_extract(np.array(img))
+            if extracted_ocr:
+                text = extracted_ocr
         except Exception:
             pass
-    return {"page": page_num + 1, "text": text if text else ""}
+    if text:
+        return LC_Doc(page_content=text, metadata={"page": page_num + 1, "source": source_name})
+    return None
 
-def extract_pdf_parallel(file_bytes):
-    doc = fitz.open(stream=file_bytes, filetype="pdf")
-    pages_to_process = [(i, doc[i]) for i in range(len(doc))]
-    chunks = []
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        results = executor.map(parse_pdf_page, pages_to_process)
-    for res in results:
-        if res["text"]:
-            chunks.append(res)
-    return chunks
+def extract_pdf_parallel(file_bytes, source_name="Uploaded PDF"):
+    try:
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        pages_to_process = [(i, doc[i]) for i in range(len(doc))]
+        docs = []
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            results = executor.map(lambda p: parse_pdf_page(p, source_name), pages_to_process)
+        for res in results:
+            if res is not None:
+                docs.append(res)
+        return docs
+    except Exception:
+        return []
 
-def extract_text_from_file(file_name, file_bytes):
-    ext = file_name.split(".")[-1].lower()
-    chunks = []
-    if ext == "pdf":
-        return extract_pdf_parallel(file_bytes)
-    elif ext == "docx":
-        doc = Document(io.BytesIO(file_bytes))
-        text = "\n".join([p.text for p in doc.paragraphs if p.text.strip()])
-        if text:
-            chunks.append({"page": 1, "text": text})
-    elif ext == "pptx":
-        prs = Presentation(io.BytesIO(file_bytes))
-        for idx, slide in enumerate(prs.slides):
-            slide_text = ""
-            for shape in slide.shapes:
-                if hasattr(shape, "text") and shape.text.strip():
-                    slide_text += shape.text + "\n"
-            if slide_text.strip():
-                chunks.append({"page": idx + 1, "text": slide_text.strip()})
+def extract_text_from_file(file_input, file_name="", progress_bar=None, status_text=None):
+    """
+    Unified extractor returning LangChain Document objects with .page_content and .metadata.
+    Supports both file paths and byte streams.
+    """
+    if isinstance(file_input, str):
+        if not os.path.exists(file_input) or os.path.getsize(file_input) == 0:
+            return []
+        with open(file_input, "rb") as f:
+            file_bytes = f.read()
+        target_name = file_name if file_name else os.path.basename(file_input)
     else:
-        try:
-            decoded_text = file_bytes.decode("utf-8")
-            if decoded_text.strip():
-                chunks.append({"page": 1, "text": decoded_text})
-        except Exception:
-            pass
-    return chunks
+        file_bytes = file_input
+        target_name = file_name
+
+    if not file_bytes:
+        return []
+
+    ext = target_name.split(".")[-1].lower() if target_name else ""
+    docs = []
+
+    try:
+        if ext == "pdf":
+            docs = extract_pdf_parallel(file_bytes, source_name=target_name)
+        elif ext == "docx":
+            doc = DocxReader(io.BytesIO(file_bytes))
+            text = "\n".join([p.text for p in doc.paragraphs if p.text.strip()])
+            if text.strip():
+                docs.append(LC_Doc(page_content=text.strip(), metadata={"page": 1, "source": target_name}))
+        elif ext == "pptx":
+            prs = Presentation(io.BytesIO(file_bytes))
+            for idx, slide in enumerate(prs.slides):
+                slide_text = ""
+                for shape in slide.shapes:
+                    if hasattr(shape, "text") and shape.text and shape.text.strip():
+                        slide_text += shape.text.strip() + "\n"
+                if slide_text.strip():
+                    docs.append(LC_Doc(
+                        page_content=slide_text.strip(),
+                        metadata={"page": idx + 1, "slide": idx + 1, "source": target_name}
+                    ))
+        else:
+            try:
+                decoded_text = file_bytes.decode("utf-8")
+                if decoded_text.strip():
+                    docs.append(LC_Doc(page_content=decoded_text.strip(), metadata={"page": 1, "source": target_name}))
+            except Exception:
+                pass
+    except Exception:
+        return []
+
+    if progress_bar and hasattr(progress_bar, "progress"):
+        progress_bar.progress(1.0)
+    if status_text and hasattr(status_text, "text"):
+        status_text.text("Extraction complete")
+
+    return docs
+
+# Test compatibility alias
+extract_docs_from_file = extract_text_from_file
 
 @st.cache_resource(show_spinner=False)
 def get_embedding_model():
     return HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
+# Test compatibility alias
+load_embeddings = get_embedding_model
+
 class HybridRetriever:
-    def __init__(self, processed_docs):
-        self.docs = processed_docs
-        self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=80)
+    def __init__(self, raw_input=None, vector_store=None, all_chunks=None):
         self.chunked_metadatas = []
         self.chunked_texts = []
+        self.vector_store = vector_store
         
-        for doc in self.docs:
-            splits = self.text_splitter.split_text(doc["text"])
-            for split in splits:
-                if split.strip():
-                    self.chunked_texts.append(split)
-                    self.chunked_metadatas.append({
-                        "page": doc.get("page", 1),
-                        "source": doc.get("source", "Uploaded Document")
-                    })
-                    
-        embeddings = get_embedding_model()
-        self.vector_store = FAISS.from_texts(self.chunked_texts, embeddings, metadatas=self.chunked_metadatas)
-        tokenized_corpus = [text.lower().split(" ") for text in self.chunked_texts]
+        candidate_chunks = []
+        if all_chunks is not None:
+            candidate_chunks = all_chunks
+        elif isinstance(raw_input, list):
+            candidate_chunks = raw_input
+
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=80)
+        
+        if candidate_chunks:
+            for item in candidate_chunks:
+                if isinstance(item, LC_Doc):
+                    splits = text_splitter.split_text(item.page_content)
+                    for split in splits:
+                        if split.strip():
+                            self.chunked_texts.append(split)
+                            self.chunked_metadatas.append(dict(item.metadata))
+                elif isinstance(item, dict):
+                    splits = text_splitter.split_text(item.get("text", ""))
+                    for split in splits:
+                        if split.strip():
+                            self.chunked_texts.append(split)
+                            self.chunked_metadatas.append({
+                                "page": item.get("page", 1),
+                                "slide": item.get("slide", item.get("page", 1)),
+                                "source": item.get("source", "Uploaded Document")
+                            })
+                            
+        if self.vector_store is None and self.chunked_texts:
+            embeddings = get_embedding_model()
+            self.vector_store = FAISS.from_texts(self.chunked_texts, embeddings, metadatas=self.chunked_metadatas)
+
+        tokenized_corpus = [t.lower().split() for t in self.chunked_texts] if self.chunked_texts else [["empty"]]
         self.bm25 = BM25Okapi(tokenized_corpus)
 
-    def search(self, query, top_k=4):
-        dense_results = self.vector_store.similarity_search_with_score(query, k=top_k * 2)
-        tokenized_query = query.lower().split(" ")
+    def search(self, query: str, top_k: int = 4):
+        if not self.chunked_texts or self.vector_store is None:
+            return []
+            
+        dense_results = self.vector_store.similarity_search_with_score(query, k=min(top_k * 2, len(self.chunked_texts)))
+        tokenized_query = query.lower().split()
         bm25_scores = self.bm25.get_scores(tokenized_query)
         top_bm25_indices = np.argsort(bm25_scores)[::-1][:top_k * 2]
         
@@ -168,15 +245,23 @@ class HybridRetriever:
             rrf_scores[txt]["score"] += 1.0 / (60.0 + (rank + 1))
             
         for rank, idx in enumerate(top_bm25_indices):
-            txt = self.chunked_texts[idx]
-            if txt not in rrf_scores:
-                from langchain_core.documents import Document as LC_Doc
-                constructed_doc = LC_Doc(page_content=txt, metadata=self.chunked_metadatas[idx])
-                rrf_scores[txt] = {"doc": constructed_doc, "score": 0.0}
-            rrf_scores[txt]["score"] += 1.0 / (60.0 + (rank + 1))
+            if idx < len(self.chunked_texts):
+                txt = self.chunked_texts[idx]
+                if txt not in rrf_scores:
+                    constructed_doc = LC_Doc(page_content=txt, metadata=self.chunked_metadatas[idx])
+                    rrf_scores[txt] = {"doc": constructed_doc, "score": 0.0}
+                rrf_scores[txt]["score"] += 1.0 / (60.0 + (rank + 1))
             
         sorted_rrf = sorted(rrf_scores.values(), key=lambda x: x["score"], reverse=True)
         return [item["doc"] for item in sorted_rrf[:top_k]]
+
+    def invoke(self, query: str):
+        return self.search(query)
+
+def create_hybrid_retriever(vector_store_or_docs, all_chunks=None):
+    if isinstance(vector_store_or_docs, list) and all_chunks is None:
+        return HybridRetriever(raw_input=vector_store_or_docs)
+    return HybridRetriever(raw_input=None, vector_store=vector_store_or_docs, all_chunks=all_chunks)
 
 def clean_response_markdown(text: str) -> str:
     text = re.sub(r'(?i)<br\s*/?>\s*•?', '\n\n* ', text)
@@ -469,10 +554,9 @@ with st.sidebar:
         with st.spinner("Executing Parallel Document Deconstruction..."):
             for f in uploaded_files:
                 file_bytes = f.read()
-                extracted_pages = extract_text_from_file(f.name, file_bytes)
-                for chunk in extracted_pages:
-                    chunk["source"] = f.name
-                    parsed_intelligence.append(chunk)
+                extracted_docs = extract_text_from_file(file_bytes, f.name)
+                for doc in extracted_docs:
+                    parsed_intelligence.append(doc)
                     
         if parsed_intelligence:
             st.session_state.raw_docs = parsed_intelligence
@@ -486,12 +570,12 @@ with st.sidebar:
         st.divider()
         st.markdown("### 📑 Indexed Knowledge")
         with st.expander("🔍 View Ingested Content", expanded=False):
-            doc_sources = list(set([d.get("source", "Document") for d in st.session_state.raw_docs]))
+            doc_sources = list(set([d.metadata.get("source", "Document") for d in st.session_state.raw_docs]))
             selected_source = st.selectbox("Select File", doc_sources)
-            selected_pages = [d for d in st.session_state.raw_docs if d.get("source") == selected_source]
+            selected_pages = [d for d in st.session_state.raw_docs if d.metadata.get("source") == selected_source]
             for p in selected_pages:
-                st.markdown(f"**Page {p.get('page', 1)}**")
-                st.text_area(f"Content_p{p.get('page', 1)}", p.get("text", "")[:400] + "...", height=90, disabled=True, label_visibility="collapsed")
+                st.markdown(f"**Page {p.metadata.get('page', 1)}**")
+                st.text_area(f"Content_p{p.metadata.get('page', 1)}", p.page_content[:400] + "...", height=90, disabled=True, label_visibility="collapsed")
             
     st.divider()
     st.markdown("### ⚙️ Operations")
@@ -521,7 +605,6 @@ chat_history_rows = db_conn.execute(
 
 preset_clicked = None
 
-# Case 1: Empty Chat -> Render Centered Welcome Hero & Action Pills
 if not chat_history_rows:
     st.markdown("""
 <div style="text-align: center; margin-top: 35px;">
@@ -559,8 +642,6 @@ if not chat_history_rows:
     with col_p3:
         if st.button("📋 Generate Practice Quiz", use_container_width=True):
             preset_clicked = "Generate a comprehensive practice quiz with multiple questions and answers based on the notes."
-
-# Case 2: Active Chat -> Render Messages & Citations
 else:
     for msg in chat_history_rows:
         if msg["role"] == "user":
@@ -581,7 +662,6 @@ else:
 </div>
 """, unsafe_allow_html=True)
             
-    # Render Verified Document Citations Expander
     if st.session_state.last_citations:
         with st.expander("🔎 Verified Document Citations", expanded=True):
             for idx, cit in enumerate(st.session_state.last_citations):
@@ -594,7 +674,6 @@ else:
                         st.session_state.inspect_modal_content = cit
                         st.rerun()
 
-    # Render Source Inspector Modal if clicked
     if st.session_state.inspect_modal_content:
         with st.container(border=True):
             c_mod = st.session_state.inspect_modal_content
@@ -624,7 +703,7 @@ if preset_clicked:
     user_query = preset_clicked
 
 # -----------------------------------------------------------------------------
-# 5. RETRIEVAL & STREAMING INFERENCE PIPELINE
+# 5. RETRIEVAL & INFERENCE PIPELINE
 # -----------------------------------------------------------------------------
 if user_query:
     db_conn.execute(
