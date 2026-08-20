@@ -25,10 +25,12 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_groq import ChatGroq
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
+
 try:
     from langchain_text_splitters import RecursiveCharacterTextSplitter
 except ImportError:
     from langchain.text_splitter import RecursiveCharacterTextSplitter
+
 import fitz  # PyMuPDF
 from docx import Document
 from pptx import Presentation
@@ -202,13 +204,13 @@ st.set_page_config(page_title="Nexus RAG Engine", page_icon="⚡", layout="wide"
 
 # Dark Glassmorphism Styling
 st.markdown("""
-    <style>
-    .stApp { background-color: #0e1117; color: #e6edf3; }
-    .stButton>button { width: 100%; background-color: #21262d; color: #f0f6fc; border: 1px solid #30363d; border-radius: 6px; }
-    .stButton>button:hover { background-color: #30363d; border-color: #8b949e; }
-    div[data-testid="stExpander"] { background-color: #161b22; border: 1px solid #30363d; border-radius: 6px; }
-    </style>
-""", unsafe_allowed_html=True)
+<style>
+.stApp { background-color: #0e1117; color: #e6edf3; }
+.stButton>button { width: 100%; background-color: #21262d; color: #f0f6fc; border: 1px solid #30363d; border-radius: 6px; }
+.stButton>button:hover { background-color: #30363d; border-color: #8b949e; }
+div[data-testid="stExpander"] { background-color: #161b22; border: 1px solid #30363d; border-radius: 6px; }
+</style>
+""", unsafe_allow_html=True)
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -243,7 +245,7 @@ if not st.session_state.authenticated:
         reg_pass = st.text_input("New Password", type="password", key="reg_pass")
         if st.button("Register Account"):
             if len(reg_user.strip()) < 3 or len(reg_pass) < 4:
-                st.warning("Username must be $\\ge$ 3 characters, Password $\\ge$ 4 characters.")
+                st.warning("Username must be >= 3 characters, Password >= 4 characters.")
             else:
                 h = hashlib.sha256(reg_pass.encode()).hexdigest()
                 try:
@@ -266,14 +268,14 @@ with st.sidebar:
         st.session_state.retriever = None
         st.rerun()
         
-    st.markdown("---")
+    st.divider()
     st.subheader("⚡ NEXUS ENGINE")
     if st.session_state.retriever:
         st.success("🟢 Hybrid Index Active (BM25 + FAISS)")
     else:
         st.info("⚪ No Documents Indexed")
         
-    st.markdown("---")
+    st.divider()
     st.subheader("📂 Document Hub")
     uploaded_files = st.file_uploader(
         "Upload Intelligence Files",
@@ -298,7 +300,7 @@ with st.sidebar:
         else:
             st.error("No valid text or OCR readable content found.")
             
-    st.markdown("---")
+    st.divider()
     st.subheader("⚙️ Operations")
     col_cc, col_wdb = st.columns(2)
     with col_cc:
@@ -328,7 +330,7 @@ for msg in chat_history_rows:
         st.markdown(msg["message"])
 
 # Quick Suggested Prompts
-st.markdown("---")
+st.divider()
 col_p1, col_p2, col_p3 = st.columns(3)
 preset_clicked = None
 with col_p1:
@@ -349,7 +351,6 @@ if preset_clicked:
 # 6. RETRIEVAL & INFERENCE PIPELINE
 # -----------------------------------------------------------------------------
 if user_query:
-    # Render user query
     with st.chat_message("user"):
         st.markdown(user_query)
     db_conn.execute(
@@ -358,7 +359,6 @@ if user_query:
     )
     db_conn.commit()
     
-    # Retrieve relevant context
     context_str = ""
     source_citations = []
     
