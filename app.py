@@ -180,14 +180,12 @@ class HybridRetriever:
 
 def clean_response_markdown(text: str) -> str:
     """Removes broken raw html tags and formats bullet linebreaks properly."""
-    # Convert '<br>' or '<br/>' in list structures into standard formatted bullet breaks
     text = re.sub(r'(?i)<br\s*/?>\s*•?', '\n\n* ', text)
-    # Remove any stray unparsed HTML tags
     text = re.sub(r'<[^>]+>', '', text)
     return text
 
 # -----------------------------------------------------------------------------
-# 4. STREAMLIT APP CONFIGURATION & TARGETED CSS
+# 4. STREAMLIT APP CONFIGURATION & AESTHETIC DARK UI
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Nexus RAG Engine",
@@ -196,74 +194,70 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Dark theme CSS with verified parameters
 st.markdown("""
 <style>
-    /* Dark Theme Global Palette */
     .stApp {
-        background-color: #0b0f17;
-        color: #e2e8f0;
+        background-color: #0d1117;
+        color: #c9d1d9;
     }
     
-    /* Clean Chat Message Bubble Framing */
     .stChatMessage {
-        background-color: #111827 !important;
-        border: 1px solid #1f2937 !important;
+        background-color: #161b22 !important;
+        border: 1px solid #30363d !important;
         border-radius: 10px !important;
-        margin-bottom: 16px !important;
-        padding: 16px !important;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+        margin-bottom: 14px !important;
+        padding: 14px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
     
-    /* Professional Dark Tables */
     table {
         width: 100%;
         border-collapse: collapse;
-        margin: 16px 0;
-        border: 1px solid #334155;
+        margin: 14px 0;
+        border: 1px solid #30363d;
         border-radius: 6px;
         overflow: hidden;
     }
     th {
-        background-color: #1e293b !important;
-        color: #38bdf8 !important;
+        background-color: #21262d !important;
+        color: #58a6ff !important;
         padding: 10px 14px;
-        border: 1px solid #334155;
+        border: 1px solid #30363d;
         text-align: left;
         font-weight: 600;
     }
     td {
-        background-color: #0f172a !important;
-        color: #cbd5e1 !important;
+        background-color: #0d1117 !important;
+        color: #c9d1d9 !important;
         padding: 10px 14px;
-        border: 1px solid #1e293b;
+        border: 1px solid #30363d;
         line-height: 1.6;
     }
     
-    /* High Visibility Inline Code Badges */
     code {
-        color: #38bdf8 !important;
-        background-color: #1e293b !important;
+        color: #58a6ff !important;
+        background-color: #21262d !important;
         padding: 2px 6px !important;
         border-radius: 4px !important;
         font-weight: 500;
     }
     
-    /* Action Buttons */
     .stButton>button {
-        background-color: #161f30;
-        color: #f8fafc;
-        border: 1px solid #334155;
+        background-color: #21262d;
+        color: #f0f6fc;
+        border: 1px solid #30363d;
         border-radius: 8px;
         font-weight: 500;
         transition: all 0.2s ease;
     }
     .stButton>button:hover {
-        background-color: #2563eb;
-        border-color: #38bdf8;
+        background-color: #1f6feb;
+        border-color: #58a6ff;
         color: #ffffff;
     }
 </style>
-""", unsafe_allowed_html=True)
+""", unsafe_allow_html=True)
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -391,7 +385,7 @@ col_p1, col_p2, col_p3 = st.columns(3)
 preset_clicked = None
 with col_p1:
     if st.button("💡 Summarize Core Concepts"):
-        preset_clicked = "Summarize the core concepts covered across the notes using clean bullet points and Markdown formatting."
+        preset_clicked = "Summarize the core concepts covered across the notes in a clean structured table."
 with col_p2:
     if st.button("⚔️ Compare Key Differences"):
         preset_clicked = "Identify the key components and compare operational structural differences."
@@ -431,9 +425,9 @@ if user_query:
     system_prompt = f"""You are a precise, elite enterprise technical RAG copilot.
 Analyze the provided document contexts to construct your structural answers.
 
-CRITICAL FORMATTING INSTRUCTIONS:
-- Use clean Markdown lists (* Item) or tables.
-- NEVER generate raw `<br>` or `<br/>` HTML tags under any circumstance.
+CRITICAL INSTRUCTIONS:
+- Format all structured breakdowns into clean Markdown tables or bullet lists.
+- NEVER output raw `<br>` HTML tags.
 - Base your answers strictly on the context if relevant.
 
 CONTEXT:
