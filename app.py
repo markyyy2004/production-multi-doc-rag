@@ -1,5 +1,6 @@
 import os
 import io
+import re
 import sqlite3
 import hashlib
 from concurrent.futures import ThreadPoolExecutor
@@ -177,8 +178,16 @@ class HybridRetriever:
         sorted_rrf = sorted(rrf_scores.values(), key=lambda x: x["score"], reverse=True)
         return [item["doc"] for item in sorted_rrf[:top_k]]
 
+def clean_response_markdown(text: str) -> str:
+    """Removes broken raw html tags and formats bullet linebreaks properly."""
+    # Convert '<br>' or '<br/>' in list structures into standard formatted bullet breaks
+    text = re.sub(r'(?i)<br\s*/?>\s*•?', '\n\n* ', text)
+    # Remove any stray unparsed HTML tags
+    text = re.sub(r'<[^>]+>', '', text)
+    return text
+
 # -----------------------------------------------------------------------------
-# 4. STREAMLIT APP CONFIGURATION & ORIGINAL UI
+# 4. STREAMLIT APP CONFIGURATION & TARGETED CSS
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Nexus RAG Engine",
@@ -189,51 +198,72 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+    /* Dark Theme Global Palette */
     .stApp {
         background-color: #0b0f17;
-        color: #c9d1d9;
+        color: #e2e8f0;
     }
     
+    /* Clean Chat Message Bubble Framing */
     .stChatMessage {
-        background-color: #161b22 !important;
-        border: 1px solid #30363d !important;
-        border-radius: 8px !important;
-        margin-bottom: 12px !important;
+        background-color: #111827 !important;
+        border: 1px solid #1f2937 !important;
+        border-radius: 10px !important;
+        margin-bottom: 16px !important;
+        padding: 16px !important;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
     }
     
+    /* Professional Dark Tables */
     table {
         width: 100%;
         border-collapse: collapse;
-        margin: 12px 0;
-        border: 1px solid #30363d;
+        margin: 16px 0;
+        border: 1px solid #334155;
+        border-radius: 6px;
+        overflow: hidden;
     }
     th {
-        background-color: #21262d !important;
-        color: #58a6ff !important;
-        padding: 8px 12px;
-        border: 1px solid #30363d;
+        background-color: #1e293b !important;
+        color: #38bdf8 !important;
+        padding: 10px 14px;
+        border: 1px solid #334155;
         text-align: left;
+        font-weight: 600;
     }
     td {
-        background-color: #0d1117 !important;
-        color: #c9d1d9 !important;
-        padding: 8px 12px;
-        border: 1px solid #30363d;
+        background-color: #0f172a !important;
+        color: #cbd5e1 !important;
+        padding: 10px 14px;
+        border: 1px solid #1e293b;
+        line-height: 1.6;
     }
     
+    /* High Visibility Inline Code Badges */
+    code {
+        color: #38bdf8 !important;
+        background-color: #1e293b !important;
+        padding: 2px 6px !important;
+        border-radius: 4px !important;
+        font-weight: 500;
+    }
+    
+    /* Action Buttons */
     .stButton>button {
-        background-color: #21262d;
-        color: #c9d1d9;
-        border: 1px solid #30363d;
-        border-radius: 6px;
+        background-color: #161f30;
+        color: #f8fafc;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
     }
     .stButton>button:hover {
-        background-color: #30363d;
-        border-color: #8b949e;
+        background-color: #2563eb;
+        border-color: #38bdf8;
         color: #ffffff;
     }
 </style>
-""", unsafe_allow_html=True)
+""", unsafe_allowed_html=True)
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -342,7 +372,7 @@ with st.sidebar:
             st.session_state.authenticated = False
             st.rerun()
 
-# --- MAIN HERO HEADER ---
+# --- MAIN CHAT VIEWPORT ---
 st.markdown("## ⚡ Nexus Enterprise Multi-Doc Hybrid RAG")
 
 # Fetch Chat History
@@ -353,7 +383,7 @@ chat_history_rows = db_conn.execute(
 
 for msg in chat_history_rows:
     with st.chat_message(msg["role"]):
-        st.markdown(msg["message"])
+        st.markdown(clean_response_markdown(msg["message"]))
 
 # Quick Suggested Prompts
 st.divider()
@@ -361,13 +391,13 @@ col_p1, col_p2, col_p3 = st.columns(3)
 preset_clicked = None
 with col_p1:
     if st.button("💡 Summarize Core Concepts"):
-        preset_clicked = "Summarize core concepts and fundamental architecture covered across the notes."
+        preset_clicked = "Summarize the core concepts covered across the notes using clean bullet points and Markdown formatting."
 with col_p2:
     if st.button("⚔️ Compare Key Differences"):
         preset_clicked = "Identify the key components and compare operational structural differences."
 with col_p3:
     if st.button("📋 Generate Practice Quiz"):
-        preset_clicked = "Generate a comprehensive practice quiz with questions and answers based on the notes."
+        preset_clicked = "Generate a comprehensive practice evaluation quiz with questions and answers based on the notes."
 
 user_query = st.chat_input("Ask anything about your documents, code, or diagrams...")
 if preset_clicked:
@@ -401,8 +431,9 @@ if user_query:
     system_prompt = f"""You are a precise, elite enterprise technical RAG copilot.
 Analyze the provided document contexts to construct your structural answers.
 
-CRITICAL INSTRUCTIONS:
-- Use clean Markdown tables (| Topic | Key Points |) and bullet points for all structured breakdowns.
+CRITICAL FORMATTING INSTRUCTIONS:
+- Use clean Markdown lists (* Item) or tables.
+- NEVER generate raw `<br>` or `<br/>` HTML tags under any circumstance.
 - Base your answers strictly on the context if relevant.
 
 CONTEXT:
@@ -417,7 +448,6 @@ CONTEXT:
         st.error("🔑 GROQ_API_KEY is not configured! Add it to Streamlit Secrets or your .env file.")
     else:
         try:
-            # Uses the exact verified Groq production model ID
             llm = ChatGroq(
                 model_name="openai/gpt-oss-20b",
                 groq_api_key=groq_api_key,
@@ -430,7 +460,7 @@ CONTEXT:
             with st.chat_message("assistant"):
                 def stream_gen():
                     for chunk in pipeline.stream({"question": user_query}):
-                        yield chunk
+                        yield clean_response_markdown(chunk)
                         
                 full_response = st.write_stream(stream_gen)
                 
