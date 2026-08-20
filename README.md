@@ -1,6 +1,7 @@
-# ⚡ Nexus RAG — Enterprise Multi-Document Knowledge Engine
+```markdown
+# ⚡ Production Multi-Doc RAG — Enterprise Knowledge Engine
 
-A production-grade, full-stack **Retrieval-Augmented Generation (RAG)** copilot designed for precise technical document search, OCR ingestion, and conversational question answering. 
+A production-grade, full-stack **Retrieval-Augmented Generation (RAG)** copilot designed for precise technical document search, OCR ingestion, and conversational question answering.
 
 Powered by a **Hybrid Search Pipeline (FAISS Dense Vectors + BM25 Lexical Matching)** fused via **Reciprocal Rank Fusion (RRF)**, high-throughput LLM streaming using **Groq (`openai/gpt-oss-20b`)**, and persistent user session storage.
 
@@ -69,29 +70,29 @@ Profiled with `profile_pipeline.py` on 500 technical chunks:
 | **Embedding Batch Size** | `64` |
 | **Indexing Throughput** | **~327 chunks / sec** |
 | **Top-4 Vector Search Latency** | **8.78 ms** |
-| **Automated Test Coverage** | **7 / 7 Passing (`pytest`)** |
+| **Automated Test Coverage** | **9 / 9 Passing (`pytest`)** |
 
 ---
 
 ## 📂 Project Structure
 
 ```text
-nexus-rag-engine/
+production-multi-doc-rag/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml               # Automated CI/CD test runner
 ├── tests/
-│   ├── __init__.py
+│   ├── test_database.py         # Tests for user authentication and chat logs
 │   ├── test_extractors.py       # Unit tests for PyMuPDF, DOCX, PPTX & OCR
-│   ├── test_retriever.py        # Integration tests for FAISS + BM25 RRF
 │   ├── test_pipeline.py         # Mocked end-to-end LLM streaming tests
-│   └── test_database.py         # Tests for user authentication and chat logs
+│   └── test_retriever.py        # Integration tests for FAISS + BM25 RRF
 ├── app.py                       # Core Streamlit application & hybrid RAG engine
 ├── database.py                  # SQLite schema, user auth, and message history
 ├── profile_pipeline.py          # Latency & throughput benchmarking script
 ├── conftest.py                  # Pytest configuration
 ├── requirements.txt             # Locked production dependencies
 ├── .gitignore                   # Ignores venv, database, and local indexes
+├── LICENSE                      # MIT License
 └── README.md
 
 ```
@@ -103,8 +104,8 @@ nexus-rag-engine/
 ### 1. Clone the Repository
 
 ```bash
-git clone [https://github.com/](https://github.com/)<your-username>/nexus-rag-engine.git
-cd nexus-rag-engine
+git clone [https://github.com/markyyy2004/production-multi-doc-rag.git](https://github.com/markyyy2004/production-multi-doc-rag.git)
+cd production-multi-doc-rag
 
 ```
 
@@ -155,7 +156,7 @@ streamlit run app.py
 
 ## 🧪 Testing & CI/CD
 
-The project includes unit and integration tests covering corrupt file handling, OCR fallbacks, exact keyword retrieval, semantic similarity, and database persistence.
+The project includes 9 automated unit and integration tests covering corrupt file handling, OCR fallbacks, exact keyword retrieval, semantic similarity, and database persistence.
 
 To trigger the test suite manually:
 
@@ -183,3 +184,5 @@ Continuous integration is automated via **GitHub Actions** on every push to `mai
 ## 📄 License
 
 Distributed under the MIT License. See `LICENSE` for more information.
+
+```
