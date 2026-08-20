@@ -179,7 +179,7 @@ class HybridRetriever:
         return [item["doc"] for item in sorted_rrf[:top_k]]
 
 # -----------------------------------------------------------------------------
-# 4. STREAMLIT APP CONFIGURATION & STYLING
+# 4. STREAMLIT APP CONFIGURATION & MODERN SAAS STYLING
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Nexus Knowledge Copilot",
@@ -190,86 +190,121 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+    /* Global Dark Canvas */
     .stApp {
-        background-color: #06090e;
-        color: #c9d1d9;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: radial-gradient(circle at 50% 0%, #0d1322 0%, #05070c 100%);
+        color: #e2e8f0;
+        font-family: 'Plus Jakarta Sans', sans-serif;
     }
     
     [data-testid="stSidebar"] {
-        background-color: #0b0f17 !important;
-        border-right: 1px solid #1a2233;
+        background-color: #070a12 !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.06);
     }
 
-    /* Centered Hero Welcome Box */
-    .welcome-pill {
-        display: inline-block;
-        background: rgba(56, 189, 248, 0.08);
-        border: 1px solid rgba(56, 189, 248, 0.25);
+    /* Centered Hero Header */
+    .hero-container {
+        text-align: center;
+        max-width: 800px;
+        margin: 30px auto 25px auto;
+    }
+    
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(99, 102, 241, 0.12));
+        border: 1px solid rgba(56, 189, 248, 0.3);
         color: #38bdf8;
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.8px;
-        padding: 5px 14px;
-        border-radius: 20px;
-        margin-bottom: 16px;
-        text-transform: uppercase;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.6px;
+        padding: 6px 14px;
+        border-radius: 9999px;
+        margin-bottom: 18px;
+        box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
     }
     
-    .welcome-title {
-        color: #ffffff;
-        font-size: 2.3rem;
+    .hero-title {
+        font-size: 2.7rem;
         font-weight: 800;
-        letter-spacing: -0.5px;
-        margin-bottom: 10px;
+        letter-spacing: -0.03em;
+        background: linear-gradient(180deg, #ffffff 30%, #94a3b8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 12px;
     }
     
-    .welcome-subtitle {
-        color: #8b949e;
-        font-size: 0.95rem;
-        max-width: 650px;
-        margin: 0 auto 24px auto;
-        line-height: 1.5;
-    }
-    
-    .feature-card {
-        background-color: #0b111e;
-        border: 1px solid #1c2638;
-        border-radius: 12px;
-        padding: 24px;
-        max-width: 680px;
-        margin: 0 auto 24px auto;
-        text-align: left;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    }
-    
-    .feature-row {
-        display: flex;
-        align-items: flex-start;
-        gap: 14px;
-        margin-bottom: 16px;
-    }
-    .feature-row:last-child {
-        margin-bottom: 0;
-    }
-    .feature-title {
-        color: #f0f6fc;
-        font-weight: 700;
-        font-size: 0.95rem;
-        margin-bottom: 2px;
-    }
-    .feature-desc {
-        color: #8b949e;
-        font-size: 0.85rem;
-        line-height: 1.4;
+    .hero-subtitle {
+        color: #94a3b8;
+        font-size: 1rem;
+        line-height: 1.6;
+        max-width: 620px;
+        margin: 0 auto;
+        font-weight: 400;
     }
 
-    /* Message Boxes */
-    .chat-container-user {
-        background-color: #0b111e;
-        border: 1px solid #1c2638;
+    /* Bento Feature Cards Grid */
+    .bento-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        max-width: 760px;
+        margin: 32px auto 24px auto;
+    }
+    
+    .bento-card {
+        background: linear-gradient(145deg, rgba(17, 24, 39, 0.6), rgba(11, 17, 30, 0.8));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        padding: 20px 22px;
+        text-align: left;
+        backdrop-filter: blur(12px);
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    .bento-card:hover {
+        border-color: rgba(56, 189, 248, 0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(56, 189, 248, 0.1);
+    }
+    
+    .bento-icon-wrapper {
+        width: 36px;
+        height: 36px;
         border-radius: 8px;
-        padding: 12px 16px;
+        background: rgba(56, 189, 248, 0.1);
+        border: 1px solid rgba(56, 189, 248, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+        font-size: 1.1rem;
+    }
+    
+    .bento-heading {
+        color: #f1f5f9;
+        font-weight: 700;
+        font-size: 0.95rem;
+        margin-bottom: 4px;
+    }
+    
+    .bento-body {
+        color: #64748b;
+        font-size: 0.82rem;
+        line-height: 1.45;
+    }
+
+    /* Message Cards */
+    .chat-container-user {
+        background: linear-gradient(145deg, #101726, #0c1220);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-left: 3px solid #818cf8;
+        border-radius: 10px;
+        padding: 14px 18px;
         margin-bottom: 14px;
         display: flex;
         align-items: center;
@@ -277,88 +312,71 @@ st.markdown("""
     }
     
     .chat-container-ai {
-        background-color: #0b111e;
-        border: 1px solid #1c2638;
-        border-radius: 8px;
-        padding: 16px 20px;
+        background: linear-gradient(145deg, #090e18, #05080f);
+        border: 1px solid rgba(56, 189, 248, 0.2);
+        border-left: 3px solid #38bdf8;
+        border-radius: 12px;
+        padding: 18px 22px;
         margin-bottom: 18px;
         line-height: 1.6;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
     }
     
-    /* Clean Markdown Tables */
+    /* Tables */
     table {
         width: 100%;
         border-collapse: collapse;
         margin: 16px 0;
-        border: 1px solid #212c3d;
-        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
         overflow: hidden;
     }
     th {
-        background-color: #121927 !important;
+        background-color: #111827 !important;
         color: #38bdf8 !important;
         padding: 10px 14px;
-        border: 1px solid #212c3d;
+        border: 1px solid rgba(255, 255, 255, 0.08);
         text-align: left;
         font-weight: 600;
+        font-size: 0.88rem;
     }
     td {
-        background-color: #0b111e !important;
-        color: #c9d1d9 !important;
+        background-color: #080c14 !important;
+        color: #cbd5e1 !important;
         padding: 10px 14px;
-        border: 1px solid #1c2638;
+        border: 1px solid rgba(255, 255, 255, 0.05);
         vertical-align: top;
+        font-size: 0.9rem;
     }
     tr:nth-child(even) td {
-        background-color: #0e1524 !important;
+        background-color: #0c121e !important;
     }
     
     code {
         color: #38bdf8 !important;
-        background-color: #162032 !important;
-        border: 1px solid #25334c !important;
+        background-color: rgba(56, 189, 248, 0.1) !important;
+        border: 1px solid rgba(56, 189, 248, 0.25) !important;
         padding: 2px 6px !important;
         border-radius: 4px !important;
-        font-size: 0.88em !important;
+        font-family: 'JetBrains Mono', monospace !important;
+        font-size: 0.85em !important;
     }
 
+    /* Buttons */
     .stButton>button {
-        background-color: #121927;
-        color: #c9d1d9;
-        border: 1px solid #212c3d;
-        border-radius: 6px;
+        background: #0f172a;
+        color: #e2e8f0;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
         font-weight: 500;
+        font-size: 0.88rem;
         transition: all 0.2s ease;
     }
     .stButton>button:hover {
-        background-color: #1c2638;
+        background: #1e293b;
         border-color: #38bdf8;
         color: #ffffff;
-    }
-
-    .status-badge-active {
-        background: rgba(34, 197, 94, 0.1);
-        border: 1px solid rgba(34, 197, 94, 0.3);
-        color: #4ade80;
-        padding: 8px 12px;
-        border-radius: 8px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .status-badge-inactive {
-        background: rgba(148, 163, 184, 0.08);
-        border: 1px solid rgba(148, 163, 184, 0.2);
-        color: #94a3b8;
-        padding: 8px 12px;
-        border-radius: 8px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 8px;
+        box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -370,12 +388,13 @@ if "username" not in st.session_state:
 if "retriever" not in st.session_state:
     st.session_state.retriever = None
 
-# --- AUTHENTICATION MODAL (CLEAN EMBEDDED FORM) ---
+# --- AUTHENTICATION DIALOG ---
 if not st.session_state.authenticated:
     st.markdown("""
-    <div style="text-align: center; margin-top: 55px; margin-bottom: 25px;">
-        <h1 style="color: #ffffff; font-size: 2.3rem; font-weight: 800; letter-spacing: -0.5px;">⚡ Nexus Knowledge Copilot</h1>
-        <p style="color: #8b949e; font-size: 0.95rem;">Context-aware, multi-format conversational intelligence</p>
+    <div class="hero-container" style="margin-top: 50px;">
+        <div class="hero-badge">⚡ ENTERPRISE AI CORE</div>
+        <div class="hero-title">Nexus Knowledge Copilot</div>
+        <div class="hero-subtitle">Context-aware, multi-format conversational intelligence</div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -425,17 +444,9 @@ with st.sidebar:
     st.divider()
     st.markdown("#### 💾 Vector Storage Status")
     if st.session_state.retriever:
-        st.markdown("""
-        <div class="status-badge-active">
-            <span>🟢</span> Persistent Index Online
-        </div>
-        """, unsafe_allow_html=True)
+        st.success("🟢 Persistent Index Online")
     else:
-        st.markdown("""
-        <div class="status-badge-inactive">
-            <span>⚪</span> No Documents Indexed
-        </div>
-        """, unsafe_allow_html=True)
+        st.info("⚪ No Documents Indexed")
         
     st.divider()
     st.markdown("### 📂 Ingestion Hub")
@@ -446,7 +457,7 @@ with st.sidebar:
         help="200MB per file • PDF, DOCX, PPTX, TXT, PY, MD"
     )
     
-    if st.button("⚡ Process & Index Documents") and uploaded_files:
+    if st.button("⚡ Process & Index Documents", use_container_width=True) and uploaded_files:
         parsed_intelligence = []
         with st.spinner("Executing Parallel Document Deconstruction..."):
             for f in uploaded_files:
@@ -467,12 +478,12 @@ with st.sidebar:
     st.markdown("### ⚙️ Operations")
     col_cc, col_wdb = st.columns(2)
     with col_cc:
-        if st.button("🧹 Clear Chat"):
+        if st.button("🧹 Clear Chat", use_container_width=True):
             db_conn.execute("DELETE FROM chat_history WHERE username = ?", (st.session_state.username,))
             db_conn.commit()
             st.rerun()
     with col_wdb:
-        if st.button("🗑️ Wipe DB"):
+        if st.button("🗑️ Wipe DB", use_container_width=True):
             db_conn.execute("DELETE FROM chat_history")
             db_conn.execute("DELETE FROM users")
             db_conn.commit()
@@ -489,26 +500,23 @@ preset_clicked = None
 
 if not chat_history_rows:
     st.markdown("""
-    <div style="text-align: center; margin-top: 35px;">
-        <div class="welcome-pill">⚡ NEXT-GEN AI RAG ENGINE</div>
-        <div class="welcome-title">Nexus Knowledge Copilot</div>
-        <div class="welcome-subtitle">
+    <div class="hero-container">
+        <div class="hero-badge">⚡ NEXT-GEN AI RAG ENGINE</div>
+        <div class="hero-title">Nexus Knowledge Copilot</div>
+        <div class="hero-subtitle">
             Context-aware, multi-format conversational intelligence powered by Groq LLaMA, FAISS vector indexing, and RapidOCR.
         </div>
-        <div class="feature-card">
-            <div class="feature-row">
-                <span style="font-size: 1.3rem;">📄</span>
-                <div>
-                    <div class="feature-title">Multi-Document Context Synthesis</div>
-                    <div class="feature-desc">Upload lecture notes, code files, slides, and scanned diagrams simultaneously.</div>
-                </div>
+        
+        <div class="bento-grid">
+            <div class="bento-card">
+                <div class="bento-icon-wrapper">📄</div>
+                <div class="bento-heading">Multi-Document Synthesis</div>
+                <div class="bento-body">Parse notes, slide decks, PDFs, code repos, and scanned flowcharts concurrently.</div>
             </div>
-            <div class="feature-row">
-                <span style="font-size: 1.3rem;">🎯</span>
-                <div>
-                    <div class="feature-title">Granular Source Attribution</div>
-                    <div class="feature-desc">Trace answers back to exact page numbers, slide indexes, and raw extracted snippets.</div>
-                </div>
+            <div class="bento-card">
+                <div class="bento-icon-wrapper">🎯</div>
+                <div class="bento-heading">Granular Attribution</div>
+                <div class="bento-body">Trace exact citations back to page numbers, slide indexes, and semantic vector chunks.</div>
             </div>
         </div>
     </div>
@@ -516,13 +524,13 @@ if not chat_history_rows:
     
     col_p1, col_p2, col_p3 = st.columns(3)
     with col_p1:
-        if st.button("💡 Summarize Core Concepts"):
+        if st.button("💡 Summarize Core Concepts", use_container_width=True):
             preset_clicked = "Summarize core concepts and fundamental architecture covered across the notes."
     with col_p2:
-        if st.button("⚔️ Compare Key Differences"):
+        if st.button("⚔️ Compare Key Differences", use_container_width=True):
             preset_clicked = "Identify the key components and compare operational structural differences."
     with col_p3:
-        if st.button("📋 Generate Practice Quiz"):
+        if st.button("📋 Generate Practice Quiz", use_container_width=True):
             preset_clicked = "Generate a comprehensive practice quiz with multiple questions and answers based on the notes."
 else:
     for msg in chat_history_rows:
@@ -537,8 +545,8 @@ else:
             st.markdown(f"""
             <div class="chat-container-ai">
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-                    <span style="color:#f59e0b; font-size:1.1rem;">⚡</span>
-                    <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Core Concepts & Architecture (as presented in the notes)</span>
+                    <span style="color:#38bdf8; font-size:1.1rem;">⚡</span>
+                    <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Nexus Synthesis Output</span>
                 </div>
                 <div>{msg['message']}</div>
             </div>
@@ -547,13 +555,13 @@ else:
     st.divider()
     col_p1, col_p2, col_p3 = st.columns(3)
     with col_p1:
-        if st.button("💡 Summarize Core Concepts"):
+        if st.button("💡 Summarize Core Concepts", use_container_width=True):
             preset_clicked = "Summarize core concepts and fundamental architecture covered across the notes."
     with col_p2:
-        if st.button("⚔️ Compare Key Differences"):
+        if st.button("⚔️ Compare Key Differences", use_container_width=True):
             preset_clicked = "Identify the key components and compare operational structural differences."
     with col_p3:
-        if st.button("📋 Generate Practice Quiz"):
+        if st.button("📋 Generate Practice Quiz", use_container_width=True):
             preset_clicked = "Generate a comprehensive practice quiz with multiple questions and answers based on the notes."
 
 user_query = st.chat_input("Ask anything about your documents, code, or diagrams...")
@@ -627,8 +635,8 @@ if user_query:
                     response_placeholder.markdown(f"""
                     <div class="chat-container-ai">
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-                            <span style="color:#f59e0b; font-size:1.1rem;">⚡</span>
-                            <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Core Concepts & Architecture (as presented in the notes)</span>
+                            <span style="color:#38bdf8; font-size:1.1rem;">⚡</span>
+                            <span style="font-weight:700; color:#f0f6fc; font-size:1.05rem;">Nexus Synthesis Output</span>
                         </div>
                         <div>{full_response}</div>
                     </div>
